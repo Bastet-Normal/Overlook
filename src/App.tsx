@@ -81,6 +81,8 @@ function OverlookApp() {
   }, {} as Record<string, number>)
   const bestType = Object.entries(contentTypeCounts).sort((a,b) => b[1]-a[1])[0]?.[0] || '笔记'
 
+  const platformTrends = mockPlatformData.map(p => `${p.platform}：增长 +${p.growth}% ，互动率 ${p.engagement}%`).join('； ')
+
   // Cross-platform comparison data for charts
   const comparisonData = mockPlatformData.map(p => ({
     name: p.platform,
@@ -147,6 +149,8 @@ function OverlookApp() {
     }
 
     insights.push(`你的最佳内容类型是「${bestType}」，建议多产出类似，预计增长 ${avgGrowth.toFixed(1)}% 左右。`)
+
+    insights.push(`平台趋势概览：${platformTrends}`)
 
     return insights
   }
