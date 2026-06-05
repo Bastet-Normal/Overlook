@@ -73,6 +73,14 @@ function OverlookApp() {
   const personalTotalViews = displayContent.reduce((sum, c) => sum + c.views, 0)
   const personalTotalLikes = displayContent.reduce((sum, c) => sum + c.likes, 0)
 
+  // Simple growth predictor and best type
+  const avgGrowth = mockPlatformData.reduce((s, p) => s + p.growth, 0) / mockPlatformData.length
+  const contentTypeCounts = displayContent.reduce((acc, c) => {
+    acc[c.type] = (acc[c.type] || 0) + 1
+    return acc
+  }, {} as Record<string, number>)
+  const bestType = Object.entries(contentTypeCounts).sort((a,b) => b[1]-a[1])[0]?.[0] || '笔记'
+
   // Cross-platform comparison data for charts
   const comparisonData = mockPlatformData.map(p => ({
     name: p.platform,
@@ -137,6 +145,8 @@ function OverlookApp() {
     } else {
       insights.push('播放量有提升空间：分析标题党 vs 价值党，测试A/B标题在不同平台。')
     }
+
+    insights.push(`你的最佳内容类型是「${bestType}」，建议多产出类似，预计增长 ${avgGrowth.toFixed(1)}% 左右。`)
 
     return insights
   }
@@ -607,6 +617,11 @@ function OverlookApp() {
 
               <div className="mt-8 text-xs text-[#86868B] border-t pt-4">
                 提示：连接真实账号后，这里会显示基于 Claude 等模型的个性化建议。目前为演示数据。
+              </div>
+
+              <div className="mt-6 p-5 apple-card border-l-4 border-[#34C759]">
+                <h4 className="font-semibold mb-2">简单增长预测器</h4>
+                <p className="text-sm">基于当前平均增长率 {avgGrowth.toFixed(1)}%，如果你每月增加 20% 内容输出，预计 3 个月后总播放量可达当前 {(personalTotalViews * 1.2 * 3).toFixed(0)} 左右。持续使用工具跟踪数据，预测会更准！</p>
               </div>
             </motion.div>
           )}
