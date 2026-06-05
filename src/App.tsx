@@ -1,4 +1,5 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useRef } from 'react'
+import Papa from 'papaparse'
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   LineChart, Line, PieChart, Pie, Cell, Legend
@@ -9,6 +10,11 @@ import {
 } from 'lucide-react'
 import { Toaster, toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useLocalStorage } from './hooks/useLocalStorage'
+import type { PlatformData, ContentItem, Account, Platform } from './types'
+import { mockPlatformData, mockContent, COLORS } from './utils/mockData'
+import { KPICard } from './components/KPICard'
+import { Navbar } from './components/Navbar'
 
 // Apple-inspired Overlook - Unified Creator Insights for Personal Creators
 // Platforms: Bilibili, Xiaohongshu (Little Red Book), Douyin
@@ -37,76 +43,33 @@ interface ContentItem {
 
 const PLATFORMS = ['Bilibili', 'Xiaohongshu', 'Douyin'] as const
 
-// Realistic mock data for personal creators (2026 context)
-const mockPlatformData: PlatformData[] = [
-  {
-    platform: 'Bilibili',
-    views: 124800,
-    likes: 8920,
-    comments: 1240,
-    shares: 680,
-    followers: 12400,
-    engagement: 8.7,
-    topContent: '「独立开发者如何用AI在3个月内变现」',
-    growth: 12.4
-  },
-  {
-    platform: 'Xiaohongshu',
-    views: 89600,
-    likes: 15600,
-    comments: 980,
-    shares: 1420,
-    followers: 8700,
-    engagement: 21.3,
-    topContent: '「我的第一套独立开发工具箱分享」',
-    growth: 18.9
-  },
-  {
-    platform: 'Douyin',
-    views: 245600,
-    likes: 32400,
-    comments: 2150,
-    shares: 1890,
-    followers: 18900,
-    engagement: 15.8,
-    topContent: '「3个小技巧让你的内容爆款」',
-    growth: 9.2
-  }
-]
-
-const mockContent: ContentItem[] = [
-  { id: 1, platform: 'Bilibili', title: '独立开发者如何用AI在3个月内变现', views: 45200, likes: 3200, date: '2026-05-28', type: '视频' },
-  { id: 2, platform: 'Xiaohongshu', title: '我的第一套独立开发工具箱分享', views: 28400, likes: 5100, date: '2026-05-25', type: '笔记' },
-  { id: 3, platform: 'Douyin', title: '3个小技巧让你的内容爆款', views: 89200, likes: 12400, date: '2026-05-22', type: '短视频' },
-  { id: 4, platform: 'Bilibili', title: 'Claude Code 实战：从0到MVP', views: 31800, likes: 2100, date: '2026-05-20', type: '视频' },
-  { id: 5, platform: 'Xiaohongshu', title: '个人创作者的2026增长复盘', views: 15600, likes: 2890, date: '2026-05-18', type: '笔记' },
-]
-
-const COLORS = ['#007AFF', '#34C759', '#FF9500']
-
 function OverlookApp() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'platforms' | 'insights' | 'accounts'>('dashboard')
-  const [accounts, setAccounts] = useState([
+  const [accounts, setAccounts] = useLocalStorage<Account[]>('overlook-accounts', [
     { platform: 'Bilibili', username: '@yourname', connected: true },
     { platform: 'Xiaohongshu', username: '@yourname', connected: true },
     { platform: 'Douyin', username: '@yourname', connected: true },
   ])
 
-  // Apple-style theme initialization (respect previous choice or system)
-  useEffect(() => {
-    const saved = localStorage.getItem('overlook-theme')
-    if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-      document.documentElement.classList.add('dark')
-    }
-  }, [])
+  const [userContent, setUserContent] = useLocalStorage<ContentItem[]>('overlook-user-content', [])
+
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [showAddAccount, setShowAddAccount] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [platformFilter, setPlatformFilter] = useState<'all' | Platform>('all')
 
-  // Calculate totals
+  // Calculate totals (use displayContent for personal stats too, but keep platform aggregates)
   const totalViews = mockPlatformData.reduce((sum, p) => sum + p.views, 0)
   const totalLikes = mockPlatformData.reduce((sum, p) => sum + p.likes, 0)
   const totalFollowers = mockPlatformData.reduce((sum, p) => sum + p.followers, 0)
   const avgEngagement = (mockPlatformData.reduce((sum, p) => sum + p.engagement, 0) / mockPlatformData.length).toFixed(1)
+
+  const topPlatform = [...mockPlatformData].sort((a, b) => b.engagement - a.engagement)[0]
+
+  // Personal stats from imported + mock content
+  const personalTotalViews = displayContent.reduce((sum, c) => sum + c.views, 0)
+  const personalTotalLikes = displayContent.reduce((sum, c) => sum + c.likes, 0)
 
   // Cross-platform comparison data for charts
   const comparisonData = mockPlatformData.map(p => ({
@@ -130,11 +93,19 @@ function OverlookApp() {
     return { day, value }
   }), [])
 
-  // Simple AI insights (rule-based, ready for real Claude integration)
+  const displayContent = [...mockContent, ...userContent]
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .filter(item => {
+      const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase())
+      const matchesPlatform = platformFilter === 'all' || item.platform === platformFilter
+      return matchesSearch && matchesPlatform
+    })
+
+  // Dynamic + rule-based insights (ready for real Claude)
   const insights = [
-    "你的小红书笔记种草力最强（21.3%互动率），建议把B站长视频的核心观点拆成3-5篇小红书笔记。",
+    `${topPlatform.platform} 互动率最高 (${topPlatform.engagement}%)，建议优先在这个平台发布核心内容。`,
+    "你的小红书笔记种草力最强，建议把B站长视频的核心观点拆成3-5篇小红书笔记。",
     "抖音短视频增长稳健，但评论区互动低于平均。尝试在视频结尾加明确问题引导评论。",
-    "B站观众更偏好深度内容。把抖音爆款的「3个技巧」扩展成完整教程视频，预计能获得2-3倍播放。",
     "跨平台最佳发布时间：小红书晚上8-10点，B站周末上午，抖音工作日中午。",
   ]
 
@@ -142,7 +113,7 @@ function OverlookApp() {
     const data = {
       exportedAt: new Date().toISOString(),
       platforms: mockPlatformData,
-      content: mockContent,
+      content: displayContent,
     }
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
@@ -153,21 +124,66 @@ function OverlookApp() {
     toast.success('报告已导出（可直接上传GitHub或分享）')
   }
 
-  const handleCSVImport = () => {
-    // Simulate CSV import for personal creators (e.g. from platform exports)
-    // Expected header row (match sample-data.csv): 平台,标题,播放量,点赞,日期,类型
-    // Download the sample CSV using the "下载示例 CSV" button next to the import button for testing
-    toast.success('CSV导入成功！已同步 12 条新内容数据（MVP演示）')
-    // In real: use papaparse
+  const handleCSVImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (results: any) => {
+        const newItems: ContentItem[] = []
+        results.data.forEach((row: any, idx: number) => {
+          const platform = row['平台'] || row['platform']
+          const title = row['标题'] || row['title']
+          const views = parseInt(row['播放量'] || row['views'] || '0', 10)
+          const likes = parseInt(row['点赞'] || row['likes'] || '0', 10)
+          const date = row['日期'] || row['date'] || new Date().toISOString().slice(0, 10)
+          const type = row['类型'] || row['type'] || '视频'
+
+          if (platform && title) {
+            newItems.push({
+              id: Date.now() + idx,
+              platform: String(platform).trim(),
+              title: String(title).trim(),
+              views: isNaN(views) ? 0 : views,
+              likes: isNaN(likes) ? 0 : likes,
+              date: String(date),
+              type: String(type).trim()
+            })
+          }
+        })
+
+        if (newItems.length > 0) {
+          setUserContent(prev => [...prev, ...newItems])
+          toast.success(`成功导入 ${newItems.length} 条内容数据！`)
+        } else {
+          toast.error('未识别到有效数据，请检查CSV格式（参考示例）')
+        }
+      },
+      error: () => toast.error('CSV解析失败')
+    })
+
+    // reset input
+    e.target.value = ''
   }
 
   const handleDownloadSample = () => {
+    const base = (import.meta.env as any)?.BASE_URL || '/'
     const a = document.createElement('a')
-    a.href = '/sample-data.csv'
+    a.href = base + 'sample-data.csv'
     a.download = 'sample-data.csv'
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
+  }
+
+  const clearImportedData = () => {
+    if (userContent.length === 0) return
+    if (window.confirm(`清除 ${userContent.length} 条导入数据？`)) {
+      setUserContent([])
+      toast.success('已清除导入数据')
+    }
   }
 
   const addMockAccount = (platform: string) => {
@@ -178,69 +194,31 @@ function OverlookApp() {
     toast.success(`已连接 ${platform} 账号`)
   }
 
+  const removeAccount = (platform: string) => {
+    setAccounts(accounts.filter(a => a.platform !== platform))
+    toast.success(`已断开 ${platform} 账号`)
+  }
+
+  const handleThemeToggle = () => {
+    const isDark = document.documentElement.classList.toggle('dark')
+    localStorage.setItem('overlook-theme', isDark ? 'dark' : 'light')
+    toast.success(isDark ? '已切换到深色模式（Apple 风格）' : '已切换到浅色模式')
+  }
+
   return (
     <div className="min-h-screen bg-[#F5F5F7] text-[#1D1D1F]">
       <Toaster position="top-center" richColors closeButton />
 
-      {/* Apple-style Navigation */}
-      <nav className="apple-nav">
-        <div className="max-w-7xl mx-auto px-8 flex items-center justify-between h-14">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-[#007AFF] rounded-full flex items-center justify-center">
-              <BarChart3 className="w-4 h-4 text-white" />
-            </div>
-            <div>
-              <div className="font-semibold text-xl tracking-tight">Overlook</div>
-              <div className="text-[10px] text-[#86868B] -mt-1">Creator Insights</div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 text-sm">
-            {(['dashboard', 'platforms', 'insights', 'accounts'] as const).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`apple-btn px-4 py-1.5 text-sm rounded-full transition-all ${
-                  activeTab === tab 
-                    ? 'bg-[#1D1D1F] text-white' 
-                    : 'hover:bg-[#E8E8ED] text-[#1D1D1F]'
-                }`}
-              >
-                {tab === 'dashboard' && '概览'}
-                {tab === 'platforms' && '平台'}
-                {tab === 'insights' && '洞察'}
-                {tab === 'accounts' && '账号'}
-              </button>
-            ))}
-          </div>
-
-          <div className="flex items-center gap-3">
-            <button onClick={handleExport} className="apple-btn apple-btn-secondary text-sm">
-              <Download className="w-4 h-4" /> 导出报告
-            </button>
-            <button onClick={handleCSVImport} className="apple-btn apple-btn-secondary text-sm">
-              <Upload className="w-4 h-4" /> 导入CSV
-            </button>
-            <button onClick={handleDownloadSample} className="apple-btn apple-btn-ghost text-sm">
-              下载示例 CSV
-            </button>
-            <button 
-              onClick={() => {
-                const isDark = document.documentElement.classList.toggle('dark')
-                localStorage.setItem('overlook-theme', isDark ? 'dark' : 'light')
-                toast.success(isDark ? '已切换到深色模式（Apple 风格）' : '已切换到浅色模式')
-              }} 
-              className="apple-btn apple-btn-secondary p-2"
-              title="切换主题 (Apple-like)"
-            >
-              <Settings className="w-4 h-4" />
-            </button>
-            <div className="w-8 h-8 bg-[#E8E8ED] dark:bg-[#2C2C2E] rounded-full flex items-center justify-center">
-              <User className="w-4 h-4" />
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Navbar 
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        onExport={handleExport}
+        onImportClick={() => fileInputRef.current?.click()}
+        onDownloadSample={handleDownloadSample}
+        onClearImported={clearImportedData}
+        hasImported={userContent.length > 0}
+        onThemeToggle={handleThemeToggle}
+      />
 
       <div className="max-w-7xl mx-auto px-8 py-10">
         {/* Hero Header - Apple clean */}
@@ -270,34 +248,31 @@ function OverlookApp() {
             >
               {/* KPI Cards - Apple generous cards */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="apple-card p-6">
-                  <div className="flex items-center gap-3 text-[#86868B] mb-2">
-                    <Eye className="w-4 h-4" /> 总播放
-                  </div>
-                  <div className="text-4xl font-semibold tracking-tighter">{(totalViews / 1000).toFixed(0)}K</div>
-                  <div className="text-sm text-[#34C759] mt-1">+14% 本月</div>
-                </div>
-                <div className="apple-card p-6">
-                  <div className="flex items-center gap-3 text-[#86868B] mb-2">
-                    <Heart className="w-4 h-4" /> 总点赞
-                  </div>
-                  <div className="text-4xl font-semibold tracking-tighter">{(totalLikes / 1000).toFixed(0)}K</div>
-                  <div className="text-sm text-[#34C759] mt-1">+22% 本月</div>
-                </div>
-                <div className="apple-card p-6">
-                  <div className="flex items-center gap-3 text-[#86868B] mb-2">
-                    <Users className="w-4 h-4" /> 总粉丝
-                  </div>
-                  <div className="text-4xl font-semibold tracking-tighter">{(totalFollowers / 1000).toFixed(0)}K</div>
-                  <div className="text-sm text-[#34C759] mt-1">+9% 本月</div>
-                </div>
-                <div className="apple-card p-6">
-                  <div className="flex items-center gap-3 text-[#86868B] mb-2">
-                    <BarChart3 className="w-4 h-4" /> 平均互动率
-                  </div>
-                  <div className="text-4xl font-semibold tracking-tighter">{avgEngagement}%</div>
-                  <div className="text-sm text-[#FF9500] mt-1">小红书表现突出</div>
-                </div>
+                <KPICard 
+                  icon={<Eye className="w-4 h-4" />} 
+                  label="总播放" 
+                  value={`${(totalViews / 1000).toFixed(0)}K`} 
+                  change="+14% 本月" 
+                />
+                <KPICard 
+                  icon={<Heart className="w-4 h-4" />} 
+                  label="总点赞" 
+                  value={`${(totalLikes / 1000).toFixed(0)}K`} 
+                  change="+22% 本月" 
+                />
+                <KPICard 
+                  icon={<Users className="w-4 h-4" />} 
+                  label="总粉丝" 
+                  value={`${(totalFollowers / 1000).toFixed(0)}K`} 
+                  change="+9% 本月" 
+                />
+                <KPICard 
+                  icon={<BarChart3 className="w-4 h-4" />} 
+                  label="平均互动率" 
+                  value={`${avgEngagement}%`} 
+                  change="小红书表现突出" 
+                  changeColor="#FF9500" 
+                />
               </div>
 
               {/* Cross Platform Comparison Chart */}
@@ -446,14 +421,35 @@ function OverlookApp() {
           {/* PLATFORMS TAB */}
           {activeTab === 'platforms' && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-              <h2 className="apple-h2">平台详情</h2>
+              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+                <h2 className="apple-h2">平台详情</h2>
+                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                  <input
+                    type="text"
+                    placeholder="搜索内容标题..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="px-4 py-2 rounded-full border border-[#E8E8ED] bg-white text-sm w-full sm:w-64 focus:outline-none focus:border-[#007AFF]"
+                  />
+                  <select
+                    value={platformFilter}
+                    onChange={(e) => setPlatformFilter(e.target.value as any)}
+                    className="px-4 py-2 rounded-full border border-[#E8E8ED] bg-white text-sm focus:outline-none focus:border-[#007AFF]"
+                  >
+                    <option value="all">所有平台</option>
+                    {PLATFORMS.map(p => (
+                      <option key={p} value={p}>{p}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {mockPlatformData.map((data, index) => (
                   <div key={index} className="apple-card p-7">
                     <div className="flex justify-between items-start mb-6">
                       <div>
                         <div className="font-semibold text-2xl">{data.platform}</div>
-                        <div className="text-[#86868B] text-sm">@{accounts.find(a => a.platform === data.platform)?.username}</div>
+                        <div className="text-[#86868B] text-sm">@{accounts.find(a => a.platform === data.platform)?.username || 'yourname'}</div>
                       </div>
                       <div className={`text-sm px-3 py-1 rounded-full ${data.growth > 10 ? 'bg-[#34C759]/10 text-[#34C759]' : 'bg-[#FF9500]/10 text-[#FF9500]'}`}>
                         +{data.growth}% 本月
@@ -478,7 +474,7 @@ function OverlookApp() {
 
               {/* Recent Content Table */}
               <div className="apple-card p-7 mt-6">
-                <h3 className="apple-h3 mb-4">近期内容表现</h3>
+                <h3 className="apple-h3 mb-4">你的内容表现（示例 + 导入的CSV数据）</h3>
                 <table className="apple-table">
                   <thead>
                     <tr>
@@ -490,9 +486,9 @@ function OverlookApp() {
                     </tr>
                   </thead>
                   <tbody>
-                    {mockContent.map(item => (
+                    {displayContent.map(item => (
                       <tr key={item.id}>
-                        <td><span className="font-medium">{item.platform}</span></td>
+                        <td><span className="font-medium">{item.platform}</span>{item.id > 1000 && <span className="ml-1 text-[10px] px-1 py-0.5 bg-[#007AFF] text-white rounded">导入</span>}</td>
                         <td className="max-w-xs truncate">{item.title}</td>
                         <td>{(item.views / 1000).toFixed(0)}K</td>
                         <td>{(item.likes / 1000).toFixed(1)}K</td>
@@ -557,13 +553,18 @@ function OverlookApp() {
                     </div>
                     <div className="flex items-center gap-2 text-sm">
                       <span className="px-3 py-1 bg-[#34C759] text-white rounded-full text-xs">已连接</span>
-                      <button className="apple-btn apple-btn-ghost text-sm px-3 py-1">管理</button>
+                      <button 
+                        onClick={() => removeAccount(acc.platform)} 
+                        className="apple-btn apple-btn-ghost text-sm px-3 py-1 text-[#FF3B30]"
+                      >
+                        移除
+                      </button>
                     </div>
                   </div>
                 ))}
               </div>
 
-              <p className="text-xs text-[#86868B] mt-4">MVP 阶段数据为模拟。真实版本可一键导入各平台 CSV 导出文件。</p>
+              <p className="text-xs text-[#86868B] mt-4">支持导入官方导出的 CSV（B站/小红书/抖音创作者中心）。数据会与示例合并显示并可导出。</p>
             </motion.div>
           )}
         </AnimatePresence>

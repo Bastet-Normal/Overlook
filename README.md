@@ -40,7 +40,7 @@ It's the dashboard you wish the platforms themselves provided — refined, priva
 - **Recent Content Table** — Clean, sortable-style view of your latest videos and notes with performance numbers.
 - **AI Growth Insights** — Rule-based actionable suggestions today (e.g., “拆解 B 站长视频成小红书笔记”). Ready for real Claude integration tomorrow.
 - **Account Management** — Mock-connected accounts with easy add/remove flow and visual status.
-- **Export & Import** — One-click JSON report export. Simulated CSV import for bringing in real platform data exports.
+- **Export & Import** — One-click JSON report export. Full CSV import (using PapaParse) - download sample or use your real platform exports (Bilibili/Xiaohongshu/Douyin) to add your content data to the list and export combined.
 - **Delightful Interactions** — Smooth tab transitions with Framer Motion, elegant toasts via Sonner, and lift-on-hover cards.
 
 Everything runs 100% locally. Your data never leaves your machine.
@@ -213,7 +213,7 @@ All dependencies are lightweight and focused.
 ## Future Roadmap
 
 - **More Platforms** — Weibo, YouTube, Instagram, TikTok, and others.
-- **Real APIs** — Native connectors or reliable CSV/JSON import from official platform exports (Bilibili Creator Center, Xiaohongshu Studio, Douyin Creator).
+- **Real APIs** — Native connectors (optional future) - CSV/JSON import already fully functional for official exports.
 - **Claude-Powered AI** — Replace rule-based insights with real Anthropic Claude (or equivalent) calls for deeply personalized, predictive recommendations and content strategy.
 - **Persistent Data** — Local-first storage (IndexedDB) + optional opt-in sync.
 - **Advanced Analytics** — Custom date ranges, cohort analysis, best-time-to-post heatmaps.

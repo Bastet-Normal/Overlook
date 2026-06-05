@@ -60,6 +60,27 @@
   border-color: #2C2C2E;
 }
 
+.dark .apple-table th,
+.dark .apple-table td {
+  border-color: #2C2C2E;
+}
+
+.dark input,
+.dark select {
+  background: #1C1C1E;
+  border-color: #2C2C2E;
+  color: #F5F5F7;
+}
+
+.dark .apple-btn-secondary {
+  background: #2C2C2E;
+  color: #F5F5F7;
+}
+
+.dark .apple-btn-secondary:hover {
+  background: #3A3A3C;
+}
+
 
 body {
   font-family: var(--font-sans);
