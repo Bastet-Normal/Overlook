@@ -4,7 +4,6 @@ import Papa from 'papaparse'
 import {
   CartesianGrid,
   Cell,
-  Legend,
   Line,
   LineChart,
   Pie,
@@ -77,6 +76,8 @@ const defaultHours: Record<Platform, number[]> = {
   Douyin: [12, 19, 20, 21],
 }
 
+const contentMixColors = ['#2563eb', '#0f766e', '#e11d48', '#b45309']
+
 const emptyDraft: ContentDraft = {
   platform: 'Bilibili',
   title: '',
@@ -90,7 +91,7 @@ const emptyDraft: ContentDraft = {
   saves: 0,
   followersGained: 0,
   pillar: '内容增长',
-  campaign: '默认活动',
+  campaign: '默认系列',
 }
 
 const emptyCompetitorDraft: CompetitorDraft = {
@@ -106,6 +107,12 @@ const statusLabel: Record<CalendarItem['status'], string> = {
   draft: '草稿',
   scheduled: '已排期',
   done: '已完成',
+}
+
+const accountStatusLabel: Record<Account['status'], string> = {
+  connected: '已连接',
+  manual: '手动维护',
+  missing: '待补充',
 }
 
 const compactNumber = new Intl.NumberFormat('zh-CN', {
@@ -285,11 +292,11 @@ function buildInsightList(
   const bestSlot = slots[0]
 
   if (topPlatform) {
-    insights.push(`${topPlatform.platform} 当前互动率最高，适合承接核心观点和合作转化。`)
+    insights.push(`${topPlatform.platform} 当前互动率最高，优先承接深度观点和商务转化。`)
   }
 
   if (topContent) {
-    insights.push(`最高播放内容是「${topContent.title}」，建议拆成 1 条短视频、1 篇图文和 1 个长视频复盘。`)
+    insights.push(`最高播放内容是「${topContent.title}」，可拆成短视频、图文卡片和长视频延展。`)
   }
 
   if (bestSlot) {
@@ -643,9 +650,11 @@ function OverlookApp() {
       <main className="app-main">
         <section className="hero-panel">
           <div>
-            <div className="eyebrow">Local-first creator operations</div>
-            <h1>跨平台创作者经营看板</h1>
-            <p>B站、小红书、抖音内容数据、排期、对标和品牌合作报告集中在一个本地工作台。</p>
+            <div className="eyebrow">今日经营状态</div>
+            <h1>创作者经营看板</h1>
+            <p>
+              {content.length} 条内容 · {PLATFORMS.length} 个平台 · 播放目标 {Math.round(goalProgress.views)}% · 合作准备度 {totals.sponsorScore}/100
+            </p>
           </div>
           <div className="hero-actions">
             <button className="action-button" onClick={() => fileInputRef.current?.click()}>
@@ -664,7 +673,7 @@ function OverlookApp() {
         </section>
 
         {activeView === 'overview' && (
-          <div className="view-stack">
+          <div className="view-stack view-stack--overview">
             <section className="kpi-grid">
               <KPICard icon={<Eye size={18} />} label="总播放" value={formatNumber(totals.views)} helper={`${content.length} 条内容`} tone="blue" />
               <KPICard icon={<Heart size={18} />} label="互动率" value={formatPercent(totals.engagementRate)} helper={`${formatNumber(totals.interactions)} 次互动`} tone="rose" />
@@ -674,7 +683,7 @@ function OverlookApp() {
 
             <section className="dashboard-grid">
               <article className="panel panel--wide">
-                <SectionTitle icon={<TrendingUp size={18} />} title="近期开奖趋势" action={`${trendData.length} 个时间点`} />
+                <SectionTitle icon={<TrendingUp size={18} />} title="内容表现趋势" action={`${trendData.length} 个时间点`} />
                 <div className="chart-box">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={trendData}>
@@ -682,8 +691,8 @@ function OverlookApp() {
                       <XAxis dataKey="day" />
                       <YAxis tickFormatter={(value: number) => formatNumber(value)} width={48} />
                       <Tooltip formatter={(value: number) => plainNumber.format(value)} />
-                      <Line type="monotone" dataKey="views" stroke="#2563eb" strokeWidth={3} dot={false} name="播放" />
-                      <Line type="monotone" dataKey="interactions" stroke="#0f766e" strokeWidth={2} dot={false} name="互动" />
+                      <Line type="monotone" dataKey="views" stroke="#2563eb" strokeWidth={3} dot={false} name="播放" isAnimationActive={false} />
+                      <Line type="monotone" dataKey="interactions" stroke="#0f766e" strokeWidth={2} dot={false} name="互动" isAnimationActive={false} />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
@@ -694,22 +703,29 @@ function OverlookApp() {
                 <div className="chart-box chart-box--compact">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
-                      <Pie data={contentMix} dataKey="value" nameKey="name" innerRadius={54} outerRadius={82} paddingAngle={3}>
+                      <Pie data={contentMix} dataKey="value" nameKey="name" innerRadius={44} outerRadius={68} paddingAngle={3} isAnimationActive={false}>
                         {contentMix.map((entry, index) => (
-                          <Cell key={entry.name} fill={['#2563eb', '#0f766e', '#e11d48', '#b45309'][index % 4]} />
+                          <Cell key={entry.name} fill={contentMixColors[index % contentMixColors.length]} />
                         ))}
                       </Pie>
                       <Tooltip formatter={(value: number) => formatNumber(value)} />
-                      <Legend />
                     </PieChart>
                   </ResponsiveContainer>
+                </div>
+                <div className="compact-legend" aria-label="内容类型占比">
+                  {contentMix.map((entry, index) => (
+                    <span key={entry.name}>
+                      <i style={{ background: contentMixColors[index % contentMixColors.length] }} />
+                      {entry.name}
+                    </span>
+                  ))}
                 </div>
               </article>
             </section>
 
             <section className="dashboard-grid">
               <article className="panel">
-                <SectionTitle icon={<Lightbulb size={18} />} title="当前判断" action="自动生成" />
+                <SectionTitle icon={<Lightbulb size={18} />} title="运营判断" action="实时" />
                 <div className="insight-list">
                   {insights.map((insight) => (
                     <div className="insight-item" key={insight}>
@@ -740,7 +756,7 @@ function OverlookApp() {
             </section>
 
             <article className="panel">
-              <SectionTitle icon={<CalendarDays size={18} />} title="活动复盘" action="按播放量" />
+              <SectionTitle icon={<CalendarDays size={18} />} title="选题系列" action="按播放排序" />
               <div className="campaign-grid">
                 {campaignRows.map((campaign) => (
                   <div className="campaign-card" key={campaign.campaign}>
@@ -759,7 +775,7 @@ function OverlookApp() {
         )}
 
         {activeView === 'content' && (
-          <div className="view-stack">
+          <div className="view-stack view-stack--content">
             <section className="panel">
               <SectionTitle icon={<Plus size={18} />} title="新增内容" action="本地保存" />
               <form className="content-form" onSubmit={handleAddContent}>
@@ -893,7 +909,7 @@ function OverlookApp() {
         )}
 
         {activeView === 'planner' && (
-          <div className="view-stack">
+          <div className="view-stack view-stack--planner">
             <section className="dashboard-grid">
               <article className="panel">
                 <SectionTitle icon={<Target size={18} />} title="月度目标" action={goal.month} />
@@ -1008,7 +1024,7 @@ function OverlookApp() {
         )}
 
         {activeView === 'benchmarks' && (
-          <div className="view-stack">
+          <div className="view-stack view-stack--benchmarks">
             <section className="panel">
               <SectionTitle icon={<Trophy size={18} />} title="对标账号" action={`${competitors.length} 个`} />
               <form className="content-form benchmark-form" onSubmit={handleAddCompetitor}>
@@ -1108,7 +1124,7 @@ function OverlookApp() {
             </section>
 
             <section className="panel">
-              <SectionTitle icon={<Flame size={18} />} title="市场补面" action="已纳入 V1" />
+              <SectionTitle icon={<Flame size={18} />} title="能力覆盖" action="V1" />
               <div className="market-grid">
                 {[
                   ['最佳发布时间', '基于历史表现生成窗口，并写入排期。'],
@@ -1128,11 +1144,11 @@ function OverlookApp() {
         )}
 
         {activeView === 'accounts' && (
-          <div className="view-stack">
+          <div className="view-stack view-stack--accounts">
             <section className="account-grid">
               {accounts.map((account) => (
                 <article className="panel account-card" key={account.platform}>
-                  <SectionTitle icon={<ShieldCheck size={18} />} title={account.platform} action={account.status} />
+                  <SectionTitle icon={<ShieldCheck size={18} />} title={account.platform} action={accountStatusLabel[account.status]} />
                   <label>
                     账号
                     <input

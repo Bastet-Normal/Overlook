@@ -27,7 +27,7 @@ export const seedContent: ContentItem[] = [
     saves: 910,
     followersGained: 410,
     pillar: '独立开发',
-    campaign: 'AI 工具线',
+    campaign: 'AI 工具系列',
   },
   {
     id: 'seed-002',
@@ -43,7 +43,7 @@ export const seedContent: ContentItem[] = [
     saves: 2300,
     followersGained: 520,
     pillar: '工具清单',
-    campaign: 'AI 工具线',
+    campaign: 'AI 工具系列',
   },
   {
     id: 'seed-003',
@@ -75,7 +75,7 @@ export const seedContent: ContentItem[] = [
     saves: 760,
     followersGained: 260,
     pillar: '产品复盘',
-    campaign: 'MVP 复盘',
+    campaign: '产品构建复盘',
   },
   {
     id: 'seed-005',
@@ -123,7 +123,7 @@ export const seedContent: ContentItem[] = [
     saves: 560,
     followersGained: 180,
     pillar: '工具清单',
-    campaign: 'AI 工具线',
+    campaign: 'AI 工具系列',
   },
   {
     id: 'seed-008',
@@ -139,7 +139,7 @@ export const seedContent: ContentItem[] = [
     saves: 1650,
     followersGained: 330,
     pillar: '工作流',
-    campaign: 'AI 工具线',
+    campaign: 'AI 工具系列',
   },
 ]
 

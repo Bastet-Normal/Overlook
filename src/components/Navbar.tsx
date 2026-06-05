@@ -61,8 +61,9 @@ export function Navbar({
         </nav>
 
         <div className="nav-actions">
-          <button className="icon-button" onClick={onImportClick} title="导入 CSV" aria-label="导入 CSV">
+          <button className="action-button action-button--ghost" onClick={onImportClick} title="导入 CSV" aria-label="导入 CSV">
             <Upload size={16} />
+            <span>导入</span>
           </button>
           <button className="action-button action-button--ghost" onClick={onExportJson}>
             JSON
