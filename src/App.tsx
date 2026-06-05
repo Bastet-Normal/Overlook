@@ -27,7 +27,6 @@ import {
   Heart,
   Lightbulb,
   Plus,
-  RefreshCw,
   Search,
   ShieldCheck,
   Smartphone,
@@ -35,7 +34,6 @@ import {
   Trash2,
   TrendingUp,
   Trophy,
-  Upload,
   Users,
   WandSparkles,
 } from 'lucide-react'
@@ -640,35 +638,42 @@ function OverlookApp() {
         activeView={activeView}
         setActiveView={setActiveView}
         onImportClick={() => fileInputRef.current?.click()}
+        onExportCsv={handleExportCsv}
         onExportJson={handleExportJson}
         onExportReport={handleExportReport}
+        onResetWorkspace={resetWorkspace}
         onInstall={handleInstall}
         showInstall={Boolean(deferredPrompt)}
       />
       <input ref={fileInputRef} type="file" accept=".csv,text/csv" className="sr-only" onChange={handleCSVImport} />
 
       <main className="app-main">
-        <section className="hero-panel">
-          <div>
+        <section className="workspace-header">
+          <div className="workspace-title">
             <div className="eyebrow">今日经营状态</div>
             <h1>创作者经营看板</h1>
-            <p>
-              {content.length} 条内容 · {PLATFORMS.length} 个平台 · 播放目标 {Math.round(goalProgress.views)}% · 合作准备度 {totals.sponsorScore}/100
-            </p>
           </div>
-          <div className="hero-actions">
-            <button className="action-button" onClick={() => fileInputRef.current?.click()}>
-              <Upload size={16} />
-              导入 CSV
-            </button>
-            <button className="action-button action-button--ghost" onClick={handleExportCsv}>
-              <Download size={16} />
-              导出 CSV
-            </button>
-            <button className="action-button action-button--danger" onClick={resetWorkspace}>
-              <RefreshCw size={16} />
-              恢复示例
-            </button>
+          <div className="status-strip" aria-label="总览状态">
+            <p>
+              <strong>{content.length}</strong>
+              <span>内容</span>
+            </p>
+            <p>
+              <strong>{PLATFORMS.length}</strong>
+              <span>平台</span>
+            </p>
+            <p>
+              <strong>{Math.round(goalProgress.views)}%</strong>
+              <span>播放目标</span>
+            </p>
+            <p>
+              <strong>{totals.sponsorScore}</strong>
+              <span>合作准备度</span>
+            </p>
+            <p>
+              <strong>{offlineReady ? '可用' : '本地'}</strong>
+              <span>{offlineReady ? '离线模式' : '浏览器保存'}</span>
+            </p>
           </div>
         </section>
 

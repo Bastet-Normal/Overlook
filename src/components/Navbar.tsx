@@ -1,4 +1,4 @@
-import { BarChart3, CalendarDays, Database, Gauge, Radar, Upload, UserRound } from 'lucide-react'
+import { BarChart3, CalendarDays, Database, Download, FileJson, FileText, Gauge, Radar, RefreshCw, Upload, UserRound } from 'lucide-react'
 import type { Dispatch, SetStateAction } from 'react'
 import type { ViewKey } from '../types'
 
@@ -6,8 +6,10 @@ interface NavbarProps {
   activeView: ViewKey
   setActiveView: Dispatch<SetStateAction<ViewKey>>
   onImportClick: () => void
+  onExportCsv: () => void
   onExportJson: () => void
   onExportReport: () => void
+  onResetWorkspace: () => void
   onInstall?: () => void
   showInstall: boolean
 }
@@ -24,8 +26,10 @@ export function Navbar({
   activeView,
   setActiveView,
   onImportClick,
+  onExportCsv,
   onExportJson,
   onExportReport,
+  onResetWorkspace,
   onInstall,
   showInstall,
 }: NavbarProps) {
@@ -60,22 +64,42 @@ export function Navbar({
           })}
         </nav>
 
-        <div className="nav-actions">
-          <button className="action-button action-button--ghost" onClick={onImportClick} title="导入 CSV" aria-label="导入 CSV">
-            <Upload size={16} />
-            <span>导入</span>
-          </button>
-          <button className="action-button action-button--ghost" onClick={onExportJson}>
-            JSON
-          </button>
-          <button className="action-button" onClick={onExportReport}>
-            报告
-          </button>
-          {showInstall && onInstall && (
-            <button className="action-button action-button--install" onClick={onInstall}>
-              安装
+        <div className="nav-actions" aria-label="工作区命令">
+          <div className="command-group">
+            <span>数据</span>
+            <button className="action-button" onClick={onImportClick} title="导入 CSV" aria-label="导入 CSV">
+              <Upload size={16} />
+              <span>导入 CSV</span>
             </button>
-          )}
+            <button className="action-button action-button--ghost" onClick={onExportCsv}>
+              <Download size={16} />
+              <span>导出 CSV</span>
+            </button>
+          </div>
+
+          <div className="command-group">
+            <span>输出</span>
+            <button className="action-button action-button--ghost" onClick={onExportJson}>
+              <FileJson size={16} />
+              <span>JSON</span>
+            </button>
+            <button className="action-button action-button--ghost" onClick={onExportReport}>
+              <FileText size={16} />
+              <span>PDF 报告</span>
+            </button>
+          </div>
+
+          <div className="command-group command-group--quiet">
+            <button className="action-button action-button--danger" onClick={onResetWorkspace}>
+              <RefreshCw size={16} />
+              <span>恢复示例</span>
+            </button>
+            {showInstall && onInstall && (
+              <button className="action-button action-button--install" onClick={onInstall}>
+                安装
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </header>
