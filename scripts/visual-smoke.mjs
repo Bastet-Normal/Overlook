@@ -57,26 +57,34 @@ async function readMetrics(page) {
   })
 }
 
-async function assertDesktopView(page, label) {
-  await page.getByRole('button', { name: label, exact: true }).click()
+const desktopViews = [
+  { key: 'overview', label: '总览' },
+  { key: 'content', label: '内容库' },
+  { key: 'planner', label: '计划' },
+  { key: 'benchmarks', label: '对标' },
+  { key: 'accounts', label: '账号' },
+]
+
+async function assertDesktopView(page, view) {
+  await page.locator(`.tab-button[data-view="${view.key}"]`).click()
   await page.waitForTimeout(100)
   const metrics = await readMetrics(page)
   if (metrics.overflowX || metrics.overflowY) {
-    throw new Error(`${label} desktop overflow: ${JSON.stringify(metrics)}`)
+    throw new Error(`${view.label} desktop overflow: ${JSON.stringify(metrics)}`)
   }
   if (metrics.tabs !== 5 || metrics.commands < 5 || metrics.panels < 1) {
-    throw new Error(`${label} desktop missing controls: ${JSON.stringify(metrics)}`)
+    throw new Error(`${view.label} desktop missing controls: ${JSON.stringify(metrics)}`)
   }
 
-  const criticalFits = await page.evaluate((viewLabel) => {
+  const criticalFits = await page.evaluate((viewKey) => {
     const selectorMap = {
-      总览: ['.experiment-list'],
-      内容库: ['.content-form'],
-      计划: ['.progress-grid', '.slot-grid', '.repurpose-grid'],
-      对标: ['.snapshot-grid'],
-      账号: ['.health-list'],
+      overview: ['.experiment-list'],
+      content: ['.content-form'],
+      planner: ['.progress-grid', '.slot-grid', '.repurpose-grid'],
+      benchmarks: ['.snapshot-grid'],
+      accounts: ['.health-list'],
     }
-    return (selectorMap[viewLabel] || []).flatMap((selector) =>
+    return (selectorMap[viewKey] || []).flatMap((selector) =>
       [...document.querySelectorAll(selector)].map((element) => ({
         selector,
         scroll: [element.scrollWidth, element.scrollHeight],
@@ -84,10 +92,10 @@ async function assertDesktopView(page, label) {
         fits: element.scrollWidth <= element.clientWidth + 4 && element.scrollHeight <= element.clientHeight + 4,
       })),
     )
-  }, label)
+  }, view.key)
   const clipped = criticalFits.filter((item) => !item.fits)
   if (clipped.length > 0) {
-    throw new Error(`${label} desktop clipped critical content: ${JSON.stringify(clipped)}`)
+    throw new Error(`${view.label} desktop clipped critical content: ${JSON.stringify(clipped)}`)
   }
 }
 
@@ -97,11 +105,11 @@ async function main() {
   try {
     const desktop = await browser.newPage({ viewport: { width: 1280, height: 760 } })
     await desktop.goto(baseUrl)
-    for (const label of ['总览', '内容库', '计划', '对标', '账号']) {
-      await assertDesktopView(desktop, label)
+    for (const view of desktopViews) {
+      await assertDesktopView(desktop, view)
     }
 
-    await desktop.getByRole('button', { name: '内容库', exact: true }).click()
+    await desktop.locator('.tab-button[data-view="content"]').click()
     await desktop.locator('input[accept=".csv,text/csv"]').setInputFiles(importCsvPath)
     await desktop.getByRole('dialog', { name: 'CSV 导入预览' }).waitFor()
     const importMetrics = await desktop.locator('.preview-metrics strong').allTextContents()
@@ -110,11 +118,16 @@ async function main() {
     }
     await desktop.getByRole('button', { name: '取消' }).click()
 
-    await desktop.getByRole('button', { name: '总览', exact: true }).click()
+    await desktop.locator('.tab-button[data-view="overview"]').click()
+    await desktop.locator('.tab-button--active[data-view="overview"]').waitFor()
+    await desktop.locator('.recharts-surface').first().waitFor()
+    await desktop.waitForTimeout(300)
     await desktop.screenshot({ path: path.join(outDir, 'desktop-1280x760.png'), fullPage: false })
 
     const wide = await browser.newPage({ viewport: { width: 1440, height: 900 } })
     await wide.goto(baseUrl)
+    await wide.locator('.recharts-surface').first().waitFor()
+    await wide.waitForTimeout(300)
     const wideMetrics = await readMetrics(wide)
     if (wideMetrics.overflowX || wideMetrics.overflowY) {
       throw new Error(`wide desktop overflow: ${JSON.stringify(wideMetrics)}`)

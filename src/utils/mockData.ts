@@ -1,15 +1,15 @@
 import type { Account, CalendarItem, Competitor, CompetitorSnapshot, ContentItem, Goal, Platform } from '../types'
 
 export const platformColors: Record<Platform, string> = {
-  Bilibili: '#0071e3',
-  Xiaohongshu: '#d70015',
+  Bilibili: '#007aff',
+  Xiaohongshu: '#ff2d55',
   Douyin: '#1d1d1f',
 }
 
 export const platformSoftColors: Record<Platform, string> = {
-  Bilibili: '#eaf4ff',
-  Xiaohongshu: '#fff0f3',
-  Douyin: '#f5f5f7',
+  Bilibili: '#edf6ff',
+  Xiaohongshu: '#fff2f6',
+  Douyin: '#f2f2f7',
 }
 
 export const seedContent: ContentItem[] = [

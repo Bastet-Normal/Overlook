@@ -53,6 +53,7 @@ export function Navbar({
             return (
               <button
                 key={tab.key}
+                data-view={tab.key}
                 className={active ? 'tab-button tab-button--active' : 'tab-button'}
                 onClick={() => setActiveView(tab.key)}
                 aria-current={active ? 'page' : undefined}

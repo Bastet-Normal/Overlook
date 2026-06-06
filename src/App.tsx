@@ -116,13 +116,41 @@ const intentLabel: Record<ContentIntent, string> = {
 
 const intentOptions: ContentIntent[] = ['growth', 'save', 'trust', 'conversion']
 
+const viewMeta: Record<ViewKey, { eyebrow: string; title: string; summary: string }> = {
+  overview: {
+    eyebrow: '今日经营状态',
+    title: '创作者经营看板',
+    summary: '把表现、实验和招商准备压缩在同一个决策面里。',
+  },
+  content: {
+    eyebrow: '内容资产管理',
+    title: '内容库',
+    summary: '维护选题、受众、钩子和表现数据，形成可复用资产。',
+  },
+  planner: {
+    eyebrow: '实验排期',
+    title: '发布计划',
+    summary: '让目标、发布时间和复盘指标保持同一个节奏。',
+  },
+  benchmarks: {
+    eyebrow: '赛道观察',
+    title: '竞品对标',
+    summary: '记录差距和快照，把外部变化转成下一轮动作。',
+  },
+  accounts: {
+    eyebrow: '本地优先',
+    title: '账号与数据',
+    summary: '管理账号素材、备份恢复和离线可用状态。',
+  },
+}
+
 const defaultHours: Record<Platform, number[]> = {
   Bilibili: [9, 10, 11, 20],
   Xiaohongshu: [20, 21, 22, 17],
   Douyin: [12, 19, 20, 21],
 }
 
-const contentMixColors = ['#0071e3', '#248a3d', '#ff9500', '#5856d6']
+const contentMixColors = ['#007aff', '#34c759', '#ff9500', '#5856d6']
 
 const emptyDraft: ContentDraft = {
   platform: 'Bilibili',
@@ -953,8 +981,9 @@ function OverlookApp() {
       <main className="app-main">
         <section className="workspace-header">
           <div className="workspace-title">
-            <div className="eyebrow">今日经营状态</div>
-            <h1>创作者经营看板</h1>
+            <div className="eyebrow">{viewMeta[activeView].eyebrow}</div>
+            <h1>{viewMeta[activeView].title}</h1>
+            <p>{viewMeta[activeView].summary}</p>
           </div>
           <div className="status-strip" aria-label="总览状态">
             <p>
