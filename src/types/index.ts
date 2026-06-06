@@ -6,6 +6,8 @@ export type ViewKey = 'overview' | 'content' | 'planner' | 'benchmarks' | 'accou
 
 export type AccountStatus = 'connected' | 'manual' | 'missing'
 
+export type ContentIntent = 'growth' | 'save' | 'trust' | 'conversion'
+
 export interface ContentItem {
   id: string
   platform: Platform
@@ -21,6 +23,10 @@ export interface ContentItem {
   followersGained: number
   pillar: string
   campaign: string
+  tags: string[]
+  audience: string
+  hook: string
+  intent: ContentIntent
 }
 
 export interface Account {
@@ -48,6 +54,15 @@ export interface Competitor {
   angle: string
 }
 
+export interface CompetitorSnapshot {
+  id: string
+  competitorId: string
+  date: string
+  followers: number
+  avgViews: number
+  engagementRate: number
+}
+
 export interface CalendarItem {
   id: string
   day: string
@@ -57,6 +72,9 @@ export interface CalendarItem {
   time: string
   objective: string
   status: 'draft' | 'scheduled' | 'done'
+  sourceId?: string
+  experiment?: string
+  metric?: string
 }
 
 export interface PlatformSummary {

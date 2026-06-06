@@ -1,6 +1,6 @@
 # Market Review
 
-Date: 2026-06-05
+Date: 2026-06-06
 
 ## What Mature Tools Consistently Offer
 
@@ -8,13 +8,19 @@ Date: 2026-06-05
 - Planning is tied to analytics. Scheduling calendars are not separate from performance recommendations.
 - Competitive analysis and listening matter for strategy. Sprout and Metricool both position competitor monitoring as a way to find market gaps and winning content patterns.
 - Exportable reports are expected. Solo creators still need shareable proof for sponsors, agencies and collaborators.
+- Mature creator tools treat raw imports as operational data, not just rows in a table. The useful pattern is validation, preview, and then conversion into actions.
+- For a local-first product, backup and restore matter more than unofficial posting connectors. Users need confidence that browser-local data can survive device or browser changes.
 
 ## Product Decisions Applied To Overlook
 
 - Added best-time slots per platform, based on local content history with platform fallbacks.
-- Added a weekly calendar generator, plus status cycling and copy-to-clipboard.
-- Added competitor benchmarks with average-view and engagement-rate gaps.
-- Added campaign and content-pillar summaries to turn raw data into repeatable content systems.
+- Added a weekly calendar generator, platform filtering, experiment objectives, tracking metrics, status cycling and copy-to-clipboard.
+- Added competitor benchmarks with average-view and engagement-rate gaps, plus snapshot capture for trend review.
+- Added campaign and content-pillar summaries, content tags, audience, hook and intent fields to turn raw data into repeatable content systems.
+- Added CSV import preview with duplicate and invalid-row handling.
+- Added full workspace backup and restore for the browser-local data model.
+- Upgraded the sponsor PDF into a Creator Media Kit with optional handle redaction.
+- Added Playwright visual smoke checks to guard the no-scroll desktop target and import-preview workflow.
 - Kept the product local-first instead of trying to ship brittle unofficial platform connectors.
 
 ## Sources

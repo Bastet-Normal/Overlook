@@ -11,7 +11,8 @@
     "typecheck": "tsc -b --noEmit",
     "lint": "eslint .",
     "preview": "vite preview",
-    "verify": "npm run lint && npm run typecheck && npm run build",
+    "visual:smoke": "node scripts/visual-smoke.mjs",
+    "verify": "npm run lint && npm run typecheck && npm run build && npm run visual:smoke",
     "deploy": "gh-pages -d dist"
   },
   "homepage": "https://wangjiehu.github.io/Overlook",
@@ -27,6 +28,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.60.0",
     "@tailwindcss/vite": "^4.0.0",
     "@types/node": "^24.12.3",
     "@types/papaparse": "^5.3.14",

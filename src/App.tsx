@@ -41,13 +41,14 @@ import { Toaster, toast } from 'sonner'
 import { Navbar } from './components/Navbar'
 import { KPICard } from './components/KPICard'
 import { useLocalStorage } from './hooks/useLocalStorage'
-import type { Account, CalendarItem, Competitor, ContentItem, Goal, Platform, PlatformSummary, ViewKey } from './types'
+import type { Account, CalendarItem, Competitor, CompetitorSnapshot, ContentIntent, ContentItem, Goal, Platform, PlatformSummary, ViewKey } from './types'
 import { PLATFORMS } from './types'
 import {
   platformColors,
   platformSoftColors,
   seedAccounts,
   seedCalendar,
+  seedCompetitorSnapshots,
   seedCompetitors,
   seedContent,
   seedGoal,
@@ -67,6 +68,53 @@ type BestSlot = {
   label: string
   score: number
 }
+
+type ParsedImportRow = {
+  rowNumber: number
+  item: ContentItem | null
+  issues: string[]
+  duplicate: boolean
+}
+
+type ImportPreview = {
+  filename: string
+  accepted: ContentItem[]
+  skipped: ParsedImportRow[]
+  totalRows: number
+  duplicateCount: number
+  invalidCount: number
+}
+
+type ActionExperiment = {
+  id: string
+  platform: Platform
+  title: string
+  action: string
+  metric: string
+  evidence: string
+}
+
+type WorkspaceSnapshot = {
+  version: number
+  exportedAt: string
+  content: ContentItem[]
+  accounts: Account[]
+  goal: Goal
+  competitors: Competitor[]
+  competitorSnapshots: CompetitorSnapshot[]
+  calendar: CalendarItem[]
+}
+
+const WORKSPACE_VERSION = 3
+
+const intentLabel: Record<ContentIntent, string> = {
+  growth: '拉新',
+  save: '收藏',
+  trust: '信任',
+  conversion: '转化',
+}
+
+const intentOptions: ContentIntent[] = ['growth', 'save', 'trust', 'conversion']
 
 const defaultHours: Record<Platform, number[]> = {
   Bilibili: [9, 10, 11, 20],
@@ -90,6 +138,10 @@ const emptyDraft: ContentDraft = {
   followersGained: 0,
   pillar: '内容增长',
   campaign: '默认系列',
+  tags: [],
+  audience: '个人创作者',
+  hook: '',
+  intent: 'growth',
 }
 
 const emptyCompetitorDraft: CompetitorDraft = {
@@ -163,17 +215,61 @@ function readCell(row: Record<string, string>, keys: string[], fallback = '') {
   return fallback
 }
 
-function parseImportedRow(row: Record<string, string>, index: number): ContentItem | null {
+function splitTags(value: string) {
+  return value
+    .split(/[,，、;；|/]/)
+    .map((tag) => tag.trim())
+    .filter(Boolean)
+    .slice(0, 8)
+}
+
+function normalizeIntent(value: string): ContentIntent {
+  const normalized = value.trim().toLowerCase()
+  if (normalized.includes('收藏') || normalized.includes('save')) return 'save'
+  if (normalized.includes('信任') || normalized.includes('trust')) return 'trust'
+  if (normalized.includes('转化') || normalized.includes('合作') || normalized.includes('conversion')) return 'conversion'
+  return 'growth'
+}
+
+function contentKey(item: Pick<ContentItem, 'platform' | 'title' | 'publishedAt'>) {
+  return `${item.platform}|${item.title.trim().toLowerCase()}|${item.publishedAt}`
+}
+
+function normalizeContentItem(item: ContentItem): ContentItem {
+  return {
+    ...item,
+    tags: Array.isArray(item.tags)
+      ? item.tags
+          .map((tag) => String(tag).trim())
+          .filter(Boolean)
+          .slice(0, 8)
+      : splitTags(item.pillar || item.campaign || ''),
+    audience: item.audience || '个人创作者',
+    hook: item.hook || item.title,
+    intent: normalizeIntent(item.intent ?? 'growth'),
+  }
+}
+
+function parseImportedRow(row: Record<string, string>, index: number, existingKeys: Set<string>): ParsedImportRow {
+  const issues: string[] = []
   const platform = normalizePlatform(readCell(row, ['平台', 'platform', 'Platform']))
   const title = readCell(row, ['标题', 'title', 'Title', '内容标题'])
-  if (!platform || !title) return null
+  const publishedAt = readCell(row, ['日期', 'date', 'publishedAt', '发布时间'], new Date().toISOString().slice(0, 10)).slice(0, 10)
 
-  return {
+  if (!platform) issues.push('平台无法识别')
+  if (!title) issues.push('缺少标题')
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(publishedAt)) issues.push('日期格式应为 YYYY-MM-DD')
+
+  if (!platform || !title || issues.length > 0) {
+    return { rowNumber: index + 2, item: null, issues, duplicate: false }
+  }
+
+  const item: ContentItem = {
     id: makeId(`import-${index}`),
     platform,
     title,
     type: readCell(row, ['类型', 'type', 'format', '内容类型'], platform === 'Xiaohongshu' ? '图文笔记' : '短视频'),
-    publishedAt: readCell(row, ['日期', 'date', 'publishedAt', '发布时间'], new Date().toISOString().slice(0, 10)).slice(0, 10),
+    publishedAt,
     hour: Math.min(23, Math.max(0, Math.round(toNumber(readCell(row, ['小时', 'hour', '发布小时'], '20'))))),
     views: toNumber(readCell(row, ['播放量', 'views', '曝光', '阅读量'])),
     likes: toNumber(readCell(row, ['点赞', 'likes', '赞'])),
@@ -183,7 +279,14 @@ function parseImportedRow(row: Record<string, string>, index: number): ContentIt
     followersGained: toNumber(readCell(row, ['涨粉', 'followersGained', '新增粉丝'])),
     pillar: readCell(row, ['内容支柱', 'pillar', '主题'], '未分类'),
     campaign: readCell(row, ['活动', 'campaign', '系列'], '导入数据'),
+    tags: splitTags(readCell(row, ['标签', 'tags', '关键词'], '')),
+    audience: readCell(row, ['受众', 'audience', '目标人群'], '个人创作者'),
+    hook: readCell(row, ['钩子', 'hook', '开头'], title),
+    intent: normalizeIntent(readCell(row, ['意图', 'intent', '目标'], 'growth')),
   }
+
+  const duplicate = existingKeys.has(contentKey(item))
+  return { rowNumber: index + 2, item, issues: duplicate ? ['重复内容'] : [], duplicate }
 }
 
 function buildPlatformSummaries(content: ContentItem[]): PlatformSummary[] {
@@ -320,6 +423,72 @@ function buildInsightList(
   return insights.slice(0, 6)
 }
 
+function buildExperiments(
+  summaries: PlatformSummary[],
+  content: ContentItem[],
+  competitors: Competitor[],
+  slots: BestSlot[],
+): ActionExperiment[] {
+  const topContent = [...content].sort((a, b) => b.views - a.views)[0]
+  const bestPlatform = [...summaries].sort((a, b) => b.engagementRate - a.engagementRate)[0]
+  const weakestPlatform = [...summaries].filter((summary) => summary.posts > 0).sort((a, b) => a.engagementRate - b.engagementRate)[0]
+  const bestSlot = slots[0]
+  const strongestCompetitor = [...competitors].sort((a, b) => b.avgViews - a.avgViews)[0]
+  const experiments: ActionExperiment[] = []
+
+  if (topContent) {
+    experiments.push({
+      id: 'extend-top-content',
+      platform: bestPlatform?.platform ?? topContent.platform,
+      title: '爆款延展实验',
+      action: `把「${topContent.title.slice(0, 18)}」拆成 1 条短视频和 1 篇图文卡片。`,
+      metric: '收藏率与转发率',
+      evidence: `${formatNumber(topContent.views)} 播放，适合作为系列母题。`,
+    })
+  }
+
+  if (bestSlot) {
+    experiments.push({
+      id: 'best-time-window',
+      platform: bestSlot.platform,
+      title: '发布时间窗口实验',
+      action: `连续两次在 ${bestSlot.label} 发布同一系列内容，避免同时更换选题结构。`,
+      metric: '前 24 小时播放',
+      evidence: `当前历史评分最高窗口为 ${bestSlot.label}。`,
+    })
+  }
+
+  if (weakestPlatform) {
+    experiments.push({
+      id: 'weak-platform-adapter',
+      platform: weakestPlatform.platform,
+      title: '低互动平台适配实验',
+      action: `${weakestPlatform.platform} 暂停直接搬运，改为重写开头钩子和结尾保存点。`,
+      metric: '互动率提升',
+      evidence: `当前互动率 ${formatPercent(weakestPlatform.engagementRate)}，低于其他平台。`,
+    })
+  }
+
+  if (strongestCompetitor && experiments.length < 4) {
+    experiments.push({
+      id: 'competitor-angle',
+      platform: strongestCompetitor.platform,
+      title: '竞品角度复刻实验',
+      action: `围绕「${strongestCompetitor.angle}」做一次同主题不同结构的内容。`,
+      metric: '均播差缩小',
+      evidence: `${strongestCompetitor.name} 当前均播 ${formatNumber(strongestCompetitor.avgViews)}。`,
+    })
+  }
+
+  return experiments.slice(0, 4)
+}
+
+function isWorkspaceSnapshot(value: unknown): value is WorkspaceSnapshot {
+  if (!value || typeof value !== 'object') return false
+  const snapshot = value as Partial<WorkspaceSnapshot>
+  return Array.isArray(snapshot.content) && Array.isArray(snapshot.accounts) && Boolean(snapshot.goal) && Array.isArray(snapshot.competitors)
+}
+
 function downloadBlob(content: BlobPart, type: string, filename: string) {
   const blob = new Blob([content], { type })
   const url = URL.createObjectURL(blob)
@@ -336,14 +505,19 @@ function OverlookApp() {
   const [accounts, setAccounts] = useLocalStorage<Account[]>('overlook-accounts-v2', seedAccounts)
   const [goal, setGoal] = useLocalStorage<Goal>('overlook-goal-v2', seedGoal)
   const [competitors, setCompetitors] = useLocalStorage<Competitor[]>('overlook-competitors-v2', seedCompetitors)
+  const [competitorSnapshots, setCompetitorSnapshots] = useLocalStorage<CompetitorSnapshot[]>('overlook-competitor-snapshots-v1', seedCompetitorSnapshots)
   const [calendar, setCalendar] = useLocalStorage<CalendarItem[]>('overlook-calendar-v2', seedCalendar)
+  const [hideSensitiveInReport, setHideSensitiveInReport] = useLocalStorage<boolean>('overlook-hide-sensitive-report-v1', false)
   const [query, setQuery] = useState('')
   const [platformFilter, setPlatformFilter] = useState<'all' | Platform>('all')
+  const [calendarPlatformFilter, setCalendarPlatformFilter] = useState<'all' | Platform>('all')
   const [draft, setDraft] = useState<ContentDraft>(emptyDraft)
   const [competitorDraft, setCompetitorDraft] = useState<CompetitorDraft>(emptyCompetitorDraft)
+  const [pendingImport, setPendingImport] = useState<ImportPreview | null>(null)
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [offlineReady, setOfflineReady] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const workspaceFileRef = useRef<HTMLInputElement>(null)
   const reportRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -361,20 +535,21 @@ function OverlookApp() {
     return () => window.removeEventListener('beforeinstallprompt', installHandler)
   }, [])
 
-  const summaries = useMemo(() => buildPlatformSummaries(content), [content])
-  const bestSlots = useMemo(() => PLATFORMS.flatMap((platform) => getBestSlots(content, platform)), [content])
+  const normalizedContent = useMemo(() => content.map(normalizeContentItem), [content])
+  const summaries = useMemo(() => buildPlatformSummaries(normalizedContent), [normalizedContent])
+  const bestSlots = useMemo(() => PLATFORMS.flatMap((platform) => getBestSlots(normalizedContent, platform)), [normalizedContent])
 
   const totals = useMemo(() => {
-    const views = sumBy(content, (item) => item.views)
-    const likes = sumBy(content, (item) => item.likes)
-    const comments = sumBy(content, (item) => item.comments)
-    const shares = sumBy(content, (item) => item.shares)
-    const saves = sumBy(content, (item) => item.saves)
-    const followersGained = sumBy(content, (item) => item.followersGained)
+    const views = sumBy(normalizedContent, (item) => item.views)
+    const likes = sumBy(normalizedContent, (item) => item.likes)
+    const comments = sumBy(normalizedContent, (item) => item.comments)
+    const shares = sumBy(normalizedContent, (item) => item.shares)
+    const saves = sumBy(normalizedContent, (item) => item.saves)
+    const followersGained = sumBy(normalizedContent, (item) => item.followersGained)
     const interactions = likes + comments + shares + saves
     const accountFollowers = sumBy(accounts, (account) => account.followers)
     const engagementRate = views > 0 ? (interactions / views) * 100 : 0
-    const sponsorScore = Math.min(100, Math.round(engagementRate * 3 + accountFollowers / 1800 + content.length * 1.5))
+    const sponsorScore = Math.min(100, Math.round(engagementRate * 3 + accountFollowers / 1800 + normalizedContent.length * 1.5))
 
     return {
       views,
@@ -388,11 +563,11 @@ function OverlookApp() {
       engagementRate,
       sponsorScore,
     }
-  }, [accounts, content])
+  }, [accounts, normalizedContent])
 
   const trendData = useMemo(() => {
     const grouped = new Map<string, { date: string; views: number; interactions: number }>()
-    content.forEach((item) => {
+    normalizedContent.forEach((item) => {
       const existing = grouped.get(item.publishedAt) ?? { date: item.publishedAt, views: 0, interactions: 0 }
       grouped.set(item.publishedAt, {
         date: item.publishedAt,
@@ -405,17 +580,17 @@ function OverlookApp() {
       .sort((a, b) => a.date.localeCompare(b.date))
       .slice(-12)
       .map((item) => ({ ...item, day: item.date.slice(5) }))
-  }, [content])
+  }, [normalizedContent])
 
   const contentMix = useMemo(() => {
     const grouped = new Map<string, number>()
-    content.forEach((item) => grouped.set(item.type, (grouped.get(item.type) ?? 0) + item.views))
+    normalizedContent.forEach((item) => grouped.set(item.type, (grouped.get(item.type) ?? 0) + item.views))
     return [...grouped.entries()].map(([name, value]) => ({ name, value }))
-  }, [content])
+  }, [normalizedContent])
 
   const campaignRows = useMemo(() => {
     const grouped = new Map<string, { campaign: string; views: number; saves: number; followers: number; posts: number }>()
-    content.forEach((item) => {
+    normalizedContent.forEach((item) => {
       const existing = grouped.get(item.campaign) ?? { campaign: item.campaign, views: 0, saves: 0, followers: 0, posts: 0 }
       grouped.set(item.campaign, {
         campaign: item.campaign,
@@ -426,29 +601,37 @@ function OverlookApp() {
       })
     })
     return [...grouped.values()].sort((a, b) => b.views - a.views)
-  }, [content])
+  }, [normalizedContent])
 
-  const topContent = useMemo(() => [...content].sort((a, b) => b.views - a.views).slice(0, 6), [content])
+  const topContent = useMemo(() => [...normalizedContent].sort((a, b) => b.views - a.views).slice(0, 6), [normalizedContent])
 
   const insights = useMemo(
-    () => buildInsightList(summaries, content, competitors, goal, bestSlots),
-    [bestSlots, competitors, content, goal, summaries],
+    () => buildInsightList(summaries, normalizedContent, competitors, goal, bestSlots),
+    [bestSlots, competitors, goal, normalizedContent, summaries],
+  )
+
+  const experiments = useMemo(
+    () => buildExperiments(summaries, normalizedContent, competitors, bestSlots),
+    [bestSlots, competitors, normalizedContent, summaries],
   )
 
   const filteredContent = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
-    return [...content]
+    return [...normalizedContent]
       .filter((item) => {
         const matchesPlatform = platformFilter === 'all' || item.platform === platformFilter
         const matchesQuery =
           !normalizedQuery ||
           item.title.toLowerCase().includes(normalizedQuery) ||
           item.pillar.toLowerCase().includes(normalizedQuery) ||
-          item.campaign.toLowerCase().includes(normalizedQuery)
+          item.campaign.toLowerCase().includes(normalizedQuery) ||
+          item.audience.toLowerCase().includes(normalizedQuery) ||
+          item.hook.toLowerCase().includes(normalizedQuery) ||
+          item.tags.some((tag) => tag.toLowerCase().includes(normalizedQuery))
         return matchesPlatform && matchesQuery
       })
       .sort((a, b) => b.publishedAt.localeCompare(a.publishedAt) || b.views - a.views)
-  }, [content, platformFilter, query])
+  }, [normalizedContent, platformFilter, query])
 
   const benchmarkRows = useMemo(() => {
     return competitors.map((competitor) => {
@@ -462,6 +645,13 @@ function OverlookApp() {
       }
     })
   }, [competitors, summaries])
+
+  const latestSnapshots = useMemo(() => {
+    return competitorSnapshots.slice(0, 8).map((snapshot) => ({
+      ...snapshot,
+      competitor: competitors.find((competitor) => competitor.id === snapshot.competitorId),
+    }))
+  }, [competitorSnapshots, competitors])
 
   const repurposeCards = useMemo(() => {
     const source = topContent[0]
@@ -479,6 +669,11 @@ function OverlookApp() {
     })
   }, [topContent])
 
+  const visibleCalendar = useMemo(
+    () => calendar.filter((item) => calendarPlatformFilter === 'all' || item.platform === calendarPlatformFilter),
+    [calendar, calendarPlatformFilter],
+  )
+
   const goalProgress = {
     views: Math.min(100, (totals.views / Math.max(1, goal.targetViews)) * 100),
     followers: Math.min(100, (totals.followersGained / Math.max(1, goal.targetFollowers)) * 100),
@@ -493,22 +688,53 @@ function OverlookApp() {
       header: true,
       skipEmptyLines: true,
       complete: (results) => {
-        const parsed = results.data
-          .map((row, index) => parseImportedRow(row, index))
-          .filter((item): item is ContentItem => Boolean(item))
+        const existingKeys = new Set(normalizedContent.map(contentKey))
+        const parsedRows = results.data.map((row, index) => {
+          const parsed = parseImportedRow(row, index, existingKeys)
+          if (parsed.item && !parsed.duplicate) {
+            existingKeys.add(contentKey(parsed.item))
+          }
+          return parsed
+        })
+        const accepted = parsedRows
+          .filter((row): row is ParsedImportRow & { item: ContentItem } => Boolean(row.item) && !row.duplicate)
+          .map((row) => row.item)
+        const skipped = parsedRows.filter((row) => !row.item || row.duplicate)
 
-        if (parsed.length === 0) {
+        if (accepted.length === 0) {
           toast.error('没有识别到有效内容')
+          setPendingImport({
+            filename: file.name,
+            accepted,
+            skipped,
+            totalRows: results.data.length,
+            duplicateCount: parsedRows.filter((row) => row.duplicate).length,
+            invalidCount: parsedRows.filter((row) => !row.item).length,
+          })
           return
         }
 
-        setContent((current) => [...parsed, ...current])
-        toast.success(`已导入 ${parsed.length} 条内容`)
+        setPendingImport({
+          filename: file.name,
+          accepted,
+          skipped,
+          totalRows: results.data.length,
+          duplicateCount: parsedRows.filter((row) => row.duplicate).length,
+          invalidCount: parsedRows.filter((row) => !row.item).length,
+        })
+        toast.info(`已解析 ${accepted.length} 条可导入内容`)
       },
       error: () => toast.error('CSV 解析失败'),
     })
 
     event.currentTarget.value = ''
+  }
+
+  const confirmImport = () => {
+    if (!pendingImport || pendingImport.accepted.length === 0) return
+    setContent((current) => [...pendingImport.accepted, ...current])
+    toast.success(`已导入 ${pendingImport.accepted.length} 条内容`)
+    setPendingImport(null)
   }
 
   const handleAddContent = (event: FormEvent<HTMLFormElement>) => {
@@ -518,7 +744,8 @@ function OverlookApp() {
       return
     }
 
-    setContent((current) => [{ ...draft, id: makeId('manual'), title: draft.title.trim() }, ...current])
+    const normalizedDraft = normalizeContentItem({ ...draft, id: makeId('manual'), title: draft.title.trim(), hook: draft.hook.trim() || draft.title.trim() })
+    setContent((current) => [normalizedDraft, ...current])
     setDraft({ ...emptyDraft, platform: draft.platform, type: draft.type, hour: draft.hour })
     toast.success('内容已加入看板')
   }
@@ -536,24 +763,68 @@ function OverlookApp() {
   }
 
   const handleExportJson = () => {
-    const payload = {
+    const payload: WorkspaceSnapshot & { summaries: PlatformSummary[]; insights: string[]; experiments: ActionExperiment[] } = {
+      version: WORKSPACE_VERSION,
       exportedAt: new Date().toISOString(),
-      content,
+      content: normalizedContent,
       accounts,
       goal,
       competitors,
+      competitorSnapshots,
       calendar,
       summaries,
       insights,
+      experiments,
     }
 
     downloadBlob(JSON.stringify(payload, null, 2), 'application/json;charset=utf-8', `overlook-report-${new Date().toISOString().slice(0, 10)}.json`)
     toast.success('JSON 已导出')
   }
 
+  const handleExportWorkspace = () => {
+    const snapshot: WorkspaceSnapshot = {
+      version: WORKSPACE_VERSION,
+      exportedAt: new Date().toISOString(),
+      content: normalizedContent,
+      accounts,
+      goal,
+      competitors,
+      competitorSnapshots,
+      calendar,
+    }
+    downloadBlob(JSON.stringify(snapshot, null, 2), 'application/json;charset=utf-8', `overlook-workspace-${new Date().toISOString().slice(0, 10)}.json`)
+    toast.success('工作区备份已导出')
+  }
+
+  const handleRestoreWorkspace = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(String(reader.result))
+        if (!isWorkspaceSnapshot(parsed)) {
+          toast.error('备份文件结构不正确')
+          return
+        }
+        setContent(parsed.content.map(normalizeContentItem))
+        setAccounts(parsed.accounts)
+        setGoal(parsed.goal)
+        setCompetitors(parsed.competitors)
+        setCompetitorSnapshots(Array.isArray(parsed.competitorSnapshots) ? parsed.competitorSnapshots : [])
+        setCalendar(Array.isArray(parsed.calendar) ? parsed.calendar : [])
+        toast.success('工作区已恢复')
+      } catch {
+        toast.error('备份文件解析失败')
+      }
+    }
+    reader.readAsText(file)
+    event.currentTarget.value = ''
+  }
+
   const handleExportCsv = () => {
     const csv = Papa.unparse(
-      content.map((item) => ({
+      normalizedContent.map((item) => ({
         平台: item.platform,
         标题: item.title,
         类型: item.type,
@@ -567,6 +838,10 @@ function OverlookApp() {
         涨粉: item.followersGained,
         内容支柱: item.pillar,
         活动: item.campaign,
+        标签: item.tags.join(','),
+        受众: item.audience,
+        钩子: item.hook,
+        意图: intentLabel[item.intent],
       })),
     )
 
@@ -612,8 +887,34 @@ function OverlookApp() {
   }
 
   const handleGenerateCalendar = () => {
-    setCalendar(createCalendar(content, summaries, bestSlots))
+    const nextCalendar = createCalendar(normalizedContent, summaries, bestSlots).map((item, index) => {
+      const experiment = experiments[index % Math.max(1, experiments.length)]
+      return experiment
+        ? {
+            ...item,
+            platform: experiment.platform,
+            experiment: experiment.title,
+            metric: experiment.metric,
+            objective: intentLabel[normalizedContent[index % Math.max(1, normalizedContent.length)]?.intent ?? 'growth'],
+          }
+        : item
+    })
+    setCalendar(nextCalendar)
     toast.success('本周计划已生成')
+  }
+
+  const captureCompetitorSnapshots = () => {
+    const today = new Date().toISOString().slice(0, 10)
+    const snapshots = competitors.map((competitor) => ({
+      id: makeId('snapshot'),
+      competitorId: competitor.id,
+      date: today,
+      followers: competitor.followers,
+      avgViews: competitor.avgViews,
+      engagementRate: competitor.engagementRate,
+    }))
+    setCompetitorSnapshots((current) => [...snapshots, ...current].slice(0, 60))
+    toast.success(`已记录 ${snapshots.length} 条竞品快照`)
   }
 
   const copyPlan = async () => {
@@ -626,6 +927,7 @@ function OverlookApp() {
     setContent(seedContent)
     setAccounts(seedAccounts)
     setCompetitors(seedCompetitors)
+    setCompetitorSnapshots(seedCompetitorSnapshots)
     setCalendar(seedCalendar)
     setGoal(seedGoal)
     toast.success('示例工作区已恢复')
@@ -646,6 +948,7 @@ function OverlookApp() {
         showInstall={Boolean(deferredPrompt)}
       />
       <input ref={fileInputRef} type="file" accept=".csv,text/csv" className="sr-only" onChange={handleCSVImport} />
+      <input ref={workspaceFileRef} type="file" accept="application/json,.json" className="sr-only" onChange={handleRestoreWorkspace} />
 
       <main className="app-main">
         <section className="workspace-header">
@@ -730,12 +1033,18 @@ function OverlookApp() {
 
             <section className="dashboard-grid">
               <article className="panel">
-                <SectionTitle icon={<Lightbulb size={18} />} title="运营判断" action="实时" />
-                <div className="insight-list">
-                  {insights.map((insight) => (
-                    <div className="insight-item" key={insight}>
+                <SectionTitle icon={<Lightbulb size={18} />} title="下一轮实验" action={`${experiments.length} 项`} />
+                <div className="experiment-list">
+                  {experiments.map((experiment) => (
+                    <div className="experiment-card" key={experiment.id}>
                       <Lightbulb size={16} />
-                      <span>{insight}</span>
+                      <div>
+                        <strong>{experiment.title}</strong>
+                        <span>{experiment.action}</span>
+                        <small>
+                          {experiment.platform} · 指标：{experiment.metric} · {experiment.evidence}
+                        </small>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -834,8 +1143,30 @@ function OverlookApp() {
                   <input value={draft.pillar} onChange={(event) => setDraft({ ...draft, pillar: event.target.value })} />
                 </label>
                 <label>
-                  活动
+                  系列
                   <input value={draft.campaign} onChange={(event) => setDraft({ ...draft, campaign: event.target.value })} />
+                </label>
+                <label className="span-2">
+                  标签
+                  <input value={draft.tags.join(', ')} onChange={(event) => setDraft({ ...draft, tags: splitTags(event.target.value) })} placeholder="模板, 工具, 复盘" />
+                </label>
+                <label>
+                  受众
+                  <input value={draft.audience} onChange={(event) => setDraft({ ...draft, audience: event.target.value })} />
+                </label>
+                <label className="span-2">
+                  钩子
+                  <input value={draft.hook} onChange={(event) => setDraft({ ...draft, hook: event.target.value })} placeholder="开头承诺或反差点" />
+                </label>
+                <label>
+                  意图
+                  <select value={draft.intent} onChange={(event) => setDraft({ ...draft, intent: event.target.value as ContentIntent })}>
+                    {intentOptions.map((intent) => (
+                      <option value={intent} key={intent}>
+                        {intentLabel[intent]}
+                      </option>
+                    ))}
+                  </select>
                 </label>
                 <button className="action-button" type="submit">
                   <Plus size={16} />
@@ -849,7 +1180,7 @@ function OverlookApp() {
               <div className="table-toolbar">
                 <div className="search-field">
                   <Search size={16} />
-                  <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索标题、主题、活动" />
+                  <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索标题、标签、受众、系列" />
                 </div>
                 <select value={platformFilter} onChange={(event) => setPlatformFilter(event.target.value as 'all' | Platform)}>
                   <option value="all">全部平台</option>
@@ -881,8 +1212,13 @@ function OverlookApp() {
                         <td>
                           <strong>{item.title}</strong>
                           <small>
-                            {item.type} · {item.pillar} · {item.campaign}
+                            {item.type} · {item.pillar} · {item.campaign} · {item.audience} · {intentLabel[item.intent]}
                           </small>
+                          <div className="tag-row">
+                            {item.tags.slice(0, 4).map((tag) => (
+                              <span key={`${item.id}-${tag}`}>{tag}</span>
+                            ))}
+                          </div>
                         </td>
                         <td>
                           <span className="platform-chip" style={{ background: platformSoftColors[item.platform], color: platformColors[item.platform] }}>
@@ -942,9 +1278,11 @@ function OverlookApp() {
                     />
                   </label>
                 </div>
-                <Progress label="播放" value={goalProgress.views} detail={`${formatNumber(totals.views)} / ${formatNumber(goal.targetViews)}`} />
-                <Progress label="涨粉" value={goalProgress.followers} detail={`${formatNumber(totals.followersGained)} / ${formatNumber(goal.targetFollowers)}`} />
-                <Progress label="合作准备" value={goalProgress.sponsor} detail={`${totals.sponsorScore}/100`} />
+                <div className="progress-grid">
+                  <Progress label="播放" value={goalProgress.views} detail={`${formatNumber(totals.views)} / ${formatNumber(goal.targetViews)}`} />
+                  <Progress label="涨粉" value={goalProgress.followers} detail={`${formatNumber(totals.followersGained)} / ${formatNumber(goal.targetFollowers)}`} />
+                  <Progress label="合作准备" value={goalProgress.sponsor} detail={`${totals.sponsorScore}/100`} />
+                </div>
               </article>
 
               <article className="panel">
@@ -980,9 +1318,15 @@ function OverlookApp() {
                   <Copy size={16} />
                   复制
                 </button>
+                <select value={calendarPlatformFilter} onChange={(event) => setCalendarPlatformFilter(event.target.value as 'all' | Platform)}>
+                  <option value="all">全部平台</option>
+                  {PLATFORMS.map((platform) => (
+                    <option key={platform}>{platform}</option>
+                  ))}
+                </select>
               </div>
               <div className="calendar-grid">
-                {calendar.map((item) => (
+                {visibleCalendar.map((item) => (
                   <article className={`calendar-card calendar-card--${item.status}`} key={item.id}>
                     <div className="calendar-card__top">
                       <span>{item.day}</span>
@@ -1005,6 +1349,8 @@ function OverlookApp() {
                     <small>
                       {item.platform} · {item.format} · {item.time}
                     </small>
+                    {item.experiment && <small>{item.experiment}</small>}
+                    {item.metric && <span className="objective-pill">指标：{item.metric}</span>}
                     <span className="objective-pill">{item.objective}</span>
                   </article>
                 ))}
@@ -1129,18 +1475,21 @@ function OverlookApp() {
             </section>
 
             <section className="panel">
-              <SectionTitle icon={<Flame size={18} />} title="能力覆盖" action="V1" />
-              <div className="market-grid">
-                {[
-                  ['最佳发布时间', '基于历史表现生成窗口，并写入排期。'],
-                  ['竞品对标', '手动维护同赛道账号，输出均播和互动差距。'],
-                  ['趋势素材池', '用内容支柱、活动和收藏率判断可复用主题。'],
-                  ['品牌报告', 'PDF、JSON、CSV 三种交付面。'],
-                ].map(([title, detail]) => (
-                  <div className="market-card" key={title}>
-                    <CheckCircle2 size={16} />
-                    <strong>{title}</strong>
-                    <span>{detail}</span>
+              <SectionTitle icon={<Flame size={18} />} title="竞品快照" action={`${competitorSnapshots.length} 条`} />
+              <div className="section-actions">
+                <button className="action-button" onClick={captureCompetitorSnapshots}>
+                  <Plus size={16} />
+                  记录快照
+                </button>
+              </div>
+              <div className="snapshot-grid">
+                {latestSnapshots.map((snapshot) => (
+                  <div className="snapshot-card" key={snapshot.id}>
+                    <strong>{snapshot.competitor?.name ?? '已删除账号'}</strong>
+                    <span>{snapshot.date}</span>
+                    <small>
+                      {formatNumber(snapshot.followers)} 粉丝 · {formatNumber(snapshot.avgViews)} 均播 · {formatPercent(snapshot.engagementRate)}
+                    </small>
                   </div>
                 ))}
               </div>
@@ -1214,11 +1563,24 @@ function OverlookApp() {
               </article>
 
               <article className="panel">
-                <SectionTitle icon={<FileText size={18} />} title="发布面" action="GitHub Pages" />
+                <SectionTitle icon={<FileText size={18} />} title="数据安全" action={`v${WORKSPACE_VERSION}`} />
+                <div className="backup-actions">
+                  <button className="action-button" onClick={handleExportWorkspace}>
+                    <Download size={16} />
+                    导出工作区
+                  </button>
+                  <button className="action-button action-button--ghost" onClick={() => workspaceFileRef.current?.click()}>
+                    <Database size={16} />
+                    恢复工作区
+                  </button>
+                </div>
+                <label className="toggle-row">
+                  <input type="checkbox" checked={hideSensitiveInReport} onChange={(event) => setHideSensitiveInReport(event.target.checked)} />
+                  <span>报告中隐藏账号 handle</span>
+                </label>
                 <div className="health-list">
-                  <HealthRow ok label="静态构建" />
-                  <HealthRow ok label="相对路径部署" />
-                  <HealthRow ok label="CSV / JSON / PDF 导出" />
+                  <HealthRow ok label="完整工作区备份" />
+                  <HealthRow ok label="恢复前结构校验" />
                   <HealthRow ok label="本地优先存储" />
                 </div>
               </article>
@@ -1227,14 +1589,19 @@ function OverlookApp() {
         )}
       </main>
 
+      {pendingImport && <ImportPreviewModal preview={pendingImport} onCancel={() => setPendingImport(null)} onConfirm={confirmImport} />}
+
       <ReportSheet
         refNode={reportRef}
         totals={totals}
         summaries={summaries}
         insights={insights}
+        experiments={experiments}
         topContent={topContent}
         calendar={calendar}
         goal={goal}
+        accounts={accounts}
+        hideSensitive={hideSensitiveInReport}
       />
     </div>
   )
@@ -1275,14 +1642,69 @@ function HealthRow({ ok, label }: { ok: boolean; label: string }) {
   )
 }
 
+function ImportPreviewModal({ preview, onCancel, onConfirm }: { preview: ImportPreview; onCancel: () => void; onConfirm: () => void }) {
+  return (
+    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="CSV 导入预览">
+      <section className="modal-panel">
+        <SectionTitle icon={<Database size={18} />} title="CSV 导入预览" action={preview.filename} />
+        <div className="preview-metrics">
+          <div>
+            <strong>{preview.totalRows}</strong>
+            <span>总行数</span>
+          </div>
+          <div>
+            <strong>{preview.accepted.length}</strong>
+            <span>可导入</span>
+          </div>
+          <div>
+            <strong>{preview.duplicateCount}</strong>
+            <span>重复</span>
+          </div>
+          <div>
+            <strong>{preview.invalidCount}</strong>
+            <span>无效</span>
+          </div>
+        </div>
+        <div className="preview-list">
+          {preview.accepted.slice(0, 5).map((item) => (
+            <div className="preview-row" key={item.id}>
+              <strong>{item.title}</strong>
+              <span>
+                {item.platform} · {item.publishedAt} · {item.tags.join(', ') || '无标签'}
+              </span>
+            </div>
+          ))}
+          {preview.skipped.slice(0, 5).map((row) => (
+            <div className="preview-row preview-row--warning" key={`skip-${row.rowNumber}`}>
+              <strong>第 {row.rowNumber} 行跳过</strong>
+              <span>{row.issues.join('、') || '无法识别'}</span>
+            </div>
+          ))}
+        </div>
+        <div className="modal-actions">
+          <button className="action-button action-button--ghost" onClick={onCancel}>
+            取消
+          </button>
+          <button className="action-button" onClick={onConfirm} disabled={preview.accepted.length === 0}>
+            确认导入
+          </button>
+        </div>
+      </section>
+    </div>
+  )
+}
+
 function ReportSheet({
   refNode,
   totals,
   summaries,
   insights,
+  experiments,
   topContent,
   calendar,
   goal,
+  accounts,
+  hideSensitive,
 }: {
   refNode: RefObject<HTMLDivElement | null>
   totals: {
@@ -1294,15 +1716,20 @@ function ReportSheet({
   }
   summaries: PlatformSummary[]
   insights: string[]
+  experiments: ActionExperiment[]
   topContent: ContentItem[]
   calendar: CalendarItem[]
   goal: Goal
+  accounts: Account[]
+  hideSensitive: boolean
 }) {
+  const audiences = [...new Set(topContent.flatMap((item) => [item.audience, ...item.tags]).filter(Boolean))].slice(0, 8)
+
   return (
     <div className="report-sheet" ref={refNode} aria-hidden="true">
       <header>
         <span>Overlook</span>
-        <h1>创作者经营报告</h1>
+        <h1>Creator Media Kit</h1>
         <p>
           {goal.month} · {new Date().toLocaleDateString('zh-CN')}
         </p>
@@ -1326,11 +1753,28 @@ function ReportSheet({
         </div>
       </section>
       <section>
+        <h2>账号与受众</h2>
+        {accounts.map((account) => (
+          <p key={account.platform}>
+            {account.platform}: {hideSensitive ? '账号已隐藏' : account.handle} · {formatNumber(account.followers)} 粉丝 · {accountStatusLabel[account.status]}。
+          </p>
+        ))}
+        <p>核心受众与标签：{audiences.join('、') || '待补充'}。</p>
+      </section>
+      <section>
         <h2>平台摘要</h2>
         {summaries.map((summary) => (
           <p key={summary.platform}>
             {summary.platform}: {formatNumber(summary.views)} 播放，{formatPercent(summary.engagementRate)} 互动率，Top 内容：
             {summary.topContent?.title ?? '暂无'}。
+          </p>
+        ))}
+      </section>
+      <section>
+        <h2>下一轮实验</h2>
+        {experiments.slice(0, 4).map((experiment) => (
+          <p key={experiment.id}>
+            {experiment.platform} · {experiment.title}: {experiment.action} 指标：{experiment.metric}。
           </p>
         ))}
       </section>

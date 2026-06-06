@@ -235,6 +235,12 @@ button {
   box-shadow: inset 0 0 0 999px rgba(0, 0, 0, 0.028);
 }
 
+button:disabled {
+  cursor: not-allowed;
+  box-shadow: none;
+  opacity: 0.48;
+}
+
 .app-main {
   width: min(1280px, calc(100% - 28px));
   margin: 0 auto;
@@ -489,6 +495,7 @@ button {
 }
 
 .insight-list,
+.experiment-list,
 .platform-list,
 .health-list {
   display: grid;
@@ -499,6 +506,7 @@ button {
 }
 
 .insight-item,
+.experiment-card,
 .platform-row,
 .health-row {
   display: flex;
@@ -513,6 +521,36 @@ button {
   color: var(--amber);
   flex: 0 0 auto;
   margin-top: 2px;
+}
+
+.experiment-card svg {
+  color: var(--blue-strong);
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+.experiment-card > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.experiment-card strong,
+.snapshot-card strong {
+  font-size: 13px;
+}
+
+.experiment-card span,
+.snapshot-card span,
+.snapshot-card small {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.3;
+}
+
+.experiment-card small {
+  color: var(--muted-2);
+  font-size: 10.5px;
 }
 
 .insight-item span,
@@ -616,6 +654,25 @@ button {
   border-radius: 999px;
   padding: 0 8px;
   font-size: 11px;
+  font-weight: 680;
+}
+
+.tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 5px;
+}
+
+.tag-row span {
+  display: inline-flex;
+  min-height: 18px;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0 6px;
+  color: var(--muted);
+  background: var(--surface-muted);
+  font-size: 10px;
   font-weight: 680;
 }
 
@@ -748,6 +805,15 @@ button:focus-visible {
   margin-bottom: 10px;
 }
 
+.progress-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.progress-grid .progress-row {
+  margin-top: 0;
+}
+
 .progress-row {
   display: grid;
   gap: 6px;
@@ -872,6 +938,24 @@ button:focus-visible {
   gap: 6px;
 }
 
+.snapshot-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  min-height: 0;
+  overflow: auto;
+}
+
+.snapshot-card {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+  background: var(--surface-soft);
+}
+
 .market-card svg {
   color: var(--teal);
 }
@@ -883,6 +967,99 @@ button:focus-visible {
 .account-card {
   display: grid;
   gap: 10px;
+}
+
+.backup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.toggle-row {
+  display: flex;
+  grid-template-columns: none;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.toggle-row input {
+  width: auto;
+  min-height: auto;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(12px);
+}
+
+.modal-panel {
+  width: min(720px, 100%);
+  max-height: min(720px, calc(100dvh - 36px));
+  display: grid;
+  gap: 12px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.22);
+  padding: 16px;
+}
+
+.preview-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.preview-metrics div,
+.preview-row {
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+  background: var(--surface-soft);
+  padding: 9px;
+}
+
+.preview-metrics strong,
+.preview-metrics span,
+.preview-row strong,
+.preview-row span {
+  display: block;
+}
+
+.preview-metrics strong {
+  font-size: 20px;
+}
+
+.preview-metrics span,
+.preview-row span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.preview-list {
+  display: grid;
+  gap: 7px;
+  max-height: 280px;
+  overflow: auto;
+}
+
+.preview-row--warning {
+  border-color: rgba(215, 0, 21, 0.18);
+  background: #fff7f8;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .report-sheet {
@@ -1085,7 +1262,7 @@ button:focus-visible {
   }
 
   .view-stack--content {
-    grid-template-rows: 188px minmax(0, 1fr);
+    grid-template-rows: 252px minmax(0, 1fr);
   }
 
   .view-stack--planner {
@@ -1176,7 +1353,7 @@ button:focus-visible {
   }
 
   .view-stack--overview {
-    grid-template-rows: 96px minmax(0, 0.9fr) minmax(0, 0.7fr) 126px;
+    grid-template-rows: 96px minmax(0, 0.86fr) minmax(0, 0.76fr) 126px;
   }
 
   .insight-item,
@@ -1225,6 +1402,40 @@ button:focus-visible {
     margin-top: 7px;
   }
 
+  .experiment-list {
+    gap: 5px;
+  }
+
+  .experiment-card {
+    align-items: center;
+    gap: 7px;
+    padding: 6px 8px;
+  }
+
+  .experiment-card svg {
+    width: 14px;
+    height: 14px;
+    margin-top: 0;
+  }
+
+  .experiment-card > div {
+    grid-template-columns: minmax(108px, 0.38fr) minmax(0, 1fr);
+    align-items: baseline;
+    column-gap: 8px;
+    row-gap: 0;
+  }
+
+  .experiment-card strong,
+  .experiment-card span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .experiment-card small {
+    display: none;
+  }
+
   .mini-metrics span {
     min-height: 19px;
     padding: 0 6px;
@@ -1236,20 +1447,35 @@ button:focus-visible {
     font-size: 10.5px;
   }
 
+  .progress-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .progress-grid .progress-row {
+    gap: 5px;
+  }
+
+  .progress-grid .progress-row > div:first-child {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 2px;
+  }
+
   .view-stack--content {
-    grid-template-rows: 166px minmax(0, 1fr);
+    grid-template-rows: 272px minmax(0, 1fr);
   }
 
   .view-stack--planner {
-    grid-template-rows: 176px minmax(0, 1fr) 112px;
+    grid-template-rows: 210px minmax(0, 1fr) 164px;
   }
 
   .view-stack--benchmarks {
-    grid-template-rows: 126px minmax(0, 1fr) 106px;
+    grid-template-rows: 126px minmax(0, 1fr) 168px;
   }
 
   .view-stack--accounts {
-    grid-template-rows: minmax(0, 1fr) 178px;
+    grid-template-rows: minmax(0, 1fr) 240px;
   }
 }
 
@@ -1257,7 +1483,8 @@ button:focus-visible {
   .kpi-grid,
   .campaign-grid,
   .repurpose-grid,
-  .market-grid {
+  .market-grid,
+  .snapshot-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -1311,6 +1538,7 @@ button:focus-visible {
   .campaign-grid,
   .repurpose-grid,
   .market-grid,
+  .snapshot-grid,
   .slot-grid,
   .goal-form {
     grid-template-columns: 1fr;

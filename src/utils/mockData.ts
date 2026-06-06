@@ -1,4 +1,4 @@
-import type { Account, CalendarItem, Competitor, ContentItem, Goal, Platform } from '../types'
+import type { Account, CalendarItem, Competitor, CompetitorSnapshot, ContentItem, Goal, Platform } from '../types'
 
 export const platformColors: Record<Platform, string> = {
   Bilibili: '#0071e3',
@@ -28,6 +28,10 @@ export const seedContent: ContentItem[] = [
     followersGained: 410,
     pillar: '独立开发',
     campaign: 'AI 工具系列',
+    tags: ['独立开发', 'AI', '产品化'],
+    audience: '独立开发者',
+    hook: '3 个月做出可售产品',
+    intent: 'trust',
   },
   {
     id: 'seed-002',
@@ -44,6 +48,10 @@ export const seedContent: ContentItem[] = [
     followersGained: 520,
     pillar: '工具清单',
     campaign: 'AI 工具系列',
+    tags: ['工具箱', '清单', '工作流'],
+    audience: '效率工具用户',
+    hook: '第一套工具箱',
+    intent: 'save',
   },
   {
     id: 'seed-003',
@@ -60,6 +68,10 @@ export const seedContent: ContentItem[] = [
     followersGained: 870,
     pillar: '内容增长',
     campaign: '增长实验',
+    tags: ['转发', '短视频', '技巧'],
+    audience: '内容创作者',
+    hook: '3 个转发技巧',
+    intent: 'growth',
   },
   {
     id: 'seed-004',
@@ -76,6 +88,10 @@ export const seedContent: ContentItem[] = [
     followersGained: 260,
     pillar: '产品复盘',
     campaign: '产品构建复盘',
+    tags: ['MVP', '复盘', '构建过程'],
+    audience: '产品创作者',
+    hook: '从 0 到 MVP',
+    intent: 'trust',
   },
   {
     id: 'seed-005',
@@ -92,6 +108,10 @@ export const seedContent: ContentItem[] = [
     followersGained: 310,
     pillar: '复盘模板',
     campaign: '增长实验',
+    tags: ['模板', '增长', '复盘'],
+    audience: '个人创作者',
+    hook: '2026 增长复盘模板',
+    intent: 'save',
   },
   {
     id: 'seed-006',
@@ -108,6 +128,10 @@ export const seedContent: ContentItem[] = [
     followersGained: 650,
     pillar: '拍摄方法',
     campaign: '增长实验',
+    tags: ['拍摄', '产品短片', '手机'],
+    audience: '短视频创作者',
+    hook: '手机拍出电影感',
+    intent: 'growth',
   },
   {
     id: 'seed-007',
@@ -124,6 +148,10 @@ export const seedContent: ContentItem[] = [
     followersGained: 180,
     pillar: '工具清单',
     campaign: 'AI 工具系列',
+    tags: ['开源工具', '生产力', '推荐'],
+    audience: '开发者',
+    hook: '5 款神器',
+    intent: 'save',
   },
   {
     id: 'seed-008',
@@ -140,6 +168,10 @@ export const seedContent: ContentItem[] = [
     followersGained: 330,
     pillar: '工作流',
     campaign: 'AI 工具系列',
+    tags: ['桌面', '工作流', '效率'],
+    audience: '知识工作者',
+    hook: '桌面工作流 2026',
+    intent: 'save',
   },
 ]
 
@@ -179,6 +211,12 @@ export const seedCompetitors: Competitor[] = [
   },
 ]
 
+export const seedCompetitorSnapshots: CompetitorSnapshot[] = [
+  { id: 'snap-001', competitorId: 'comp-001', date: '2026-06-01', followers: 53000, avgViews: 36000, engagementRate: 18.4 },
+  { id: 'snap-002', competitorId: 'comp-002', date: '2026-06-01', followers: 92000, avgViews: 52000, engagementRate: 9.6 },
+  { id: 'snap-003', competitorId: 'comp-003', date: '2026-06-01', followers: 118000, avgViews: 76000, engagementRate: 13.1 },
+]
+
 export const seedGoal: Goal = {
   month: '2026-06',
   targetViews: 360000,
@@ -196,6 +234,8 @@ export const seedCalendar: CalendarItem[] = [
     time: '10:00',
     objective: '沉淀信任',
     status: 'scheduled',
+    experiment: '长视频复盘结构',
+    metric: '完播和评论',
   },
   {
     id: 'cal-002',
@@ -206,6 +246,8 @@ export const seedCalendar: CalendarItem[] = [
     time: '21:00',
     objective: '收藏增长',
     status: 'draft',
+    experiment: '首图清单密度',
+    metric: '收藏率',
   },
   {
     id: 'cal-003',
@@ -216,5 +258,7 @@ export const seedCalendar: CalendarItem[] = [
     time: '12:00',
     objective: '拉新',
     status: 'draft',
+    experiment: '3 秒反差钩子',
+    metric: '转发率',
   },
 ]
