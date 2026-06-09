@@ -206,27 +206,27 @@ const viewMeta: Record<ViewKey, { eyebrow: string; title: string; summary: strin
   overview: {
     eyebrow: '今日经营状态',
     title: '创作者经营看板',
-    summary: '把表现、实验和招商准备压缩在同一个决策面里。',
+    summary: '关键指标、趋势和下一步动作。',
   },
   content: {
     eyebrow: '内容资产管理',
     title: '内容库',
-    summary: '维护选题、受众、钩子和表现数据，形成可复用资产。',
+    summary: '录入表现，筛选可复用素材。',
   },
   planner: {
     eyebrow: '实验排期',
     title: '发布计划',
-    summary: '让目标、发布时间和复盘指标保持同一个节奏。',
+    summary: '目标、排期和复盘指标。',
   },
   benchmarks: {
     eyebrow: '赛道观察',
     title: '竞品对标',
-    summary: '记录差距和快照，把外部变化转成下一轮动作。',
+    summary: '输入账号后扫描，确认后进入对标。',
   },
   accounts: {
     eyebrow: '本地优先',
     title: '账号与数据',
-    summary: '管理账号素材、备份恢复和离线可用状态。',
+    summary: '账号信息、备份恢复和离线状态。',
   },
 }
 
@@ -236,7 +236,7 @@ const defaultHours: Record<Platform, number[]> = {
   Douyin: [12, 19, 20, 21],
 }
 
-const contentMixColors = ['#007aff', '#34c759', '#ff9500', '#5856d6']
+const contentMixColors = ['#0a84ff', '#009e9a', '#b7791f', '#6f67d9']
 
 const emptyDraft: ContentDraft = {
   platform: 'Bilibili',
@@ -1409,12 +1409,12 @@ function OverlookApp() {
                 <div className="chart-box">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={trendData}>
-                      <CartesianGrid strokeDasharray="4 4" />
-                      <XAxis dataKey="day" />
-                      <YAxis tickFormatter={(value: number) => formatNumber(value)} width={48} />
-                      <Tooltip formatter={(value: number) => plainNumber.format(value)} />
-                      <Line type="monotone" dataKey="views" stroke="#0071e3" strokeWidth={3} dot={false} name="播放" isAnimationActive={false} />
-                      <Line type="monotone" dataKey="interactions" stroke="#248a3d" strokeWidth={2} dot={false} name="互动" isAnimationActive={false} />
+                      <CartesianGrid strokeDasharray="4 4" stroke="rgba(17,24,39,0.08)" />
+                      <XAxis dataKey="day" tick={{ fill: '#667085' }} stroke="rgba(17,24,39,0.12)" />
+                      <YAxis tickFormatter={(value: number) => formatNumber(value)} width={48} tick={{ fill: '#667085' }} stroke="rgba(17,24,39,0.12)" />
+                      <Tooltip formatter={(value: number) => plainNumber.format(value)} contentStyle={{ background: '#ffffff', border: '1px solid rgba(17,24,39,0.12)', borderRadius: '8px', color: '#111827' }} labelStyle={{ color: '#667085' }} itemStyle={{ color: '#111827' }} />
+                      <Line type="monotone" dataKey="views" stroke="#0a84ff" strokeWidth={3} dot={false} name="播放" isAnimationActive={false} />
+                      <Line type="monotone" dataKey="interactions" stroke="#009e9a" strokeWidth={2} dot={false} name="互动" isAnimationActive={false} />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
@@ -1430,7 +1430,7 @@ function OverlookApp() {
                           <Cell key={entry.name} fill={contentMixColors[index % contentMixColors.length]} />
                         ))}
                       </Pie>
-                      <Tooltip formatter={(value: number) => formatNumber(value)} />
+                      <Tooltip formatter={(value: number) => formatNumber(value)} contentStyle={{ background: '#ffffff', border: '1px solid rgba(17,24,39,0.12)', borderRadius: '8px', color: '#111827' }} itemStyle={{ color: '#111827' }} />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
@@ -1445,11 +1445,11 @@ function OverlookApp() {
               </article>
             </section>
 
-            <section className="dashboard-grid">
+            <section className="overview-secondary">
               <article className="panel">
-                <SectionTitle icon={<Lightbulb size={18} />} title="下一轮实验" action={`${experiments.length} 项`} />
+                <SectionTitle icon={<Lightbulb size={18} />} title="下一轮实验" action={`优先 ${Math.min(experiments.length, 3)} 项`} />
                 <div className="experiment-list">
-                  {experiments.map((experiment) => (
+                  {experiments.slice(0, 3).map((experiment) => (
                     <div className="experiment-card" key={experiment.id}>
                       <Lightbulb size={16} />
                       <div>
@@ -1481,24 +1481,24 @@ function OverlookApp() {
                     ))}
                 </div>
               </article>
-            </section>
 
-            <article className="panel">
-              <SectionTitle icon={<CalendarDays size={18} />} title="选题系列" action="按播放排序" />
-              <div className="campaign-grid">
-                {campaignRows.map((campaign) => (
-                  <div className="campaign-card" key={campaign.campaign}>
-                    <strong>{campaign.campaign}</strong>
-                    <span>{campaign.posts} 条内容</span>
-                    <div className="mini-metrics">
-                      <span>{formatNumber(campaign.views)} 播放</span>
-                      <span>{formatNumber(campaign.saves)} 收藏</span>
-                      <span>{formatNumber(campaign.followers)} 涨粉</span>
+              <article className="panel">
+                <SectionTitle icon={<CalendarDays size={18} />} title="选题系列" action="前 2 个" />
+                <div className="campaign-grid">
+                  {campaignRows.slice(0, 2).map((campaign) => (
+                    <div className="campaign-card" key={campaign.campaign}>
+                      <strong>{campaign.campaign}</strong>
+                      <span>{campaign.posts} 条内容</span>
+                      <div className="mini-metrics">
+                        <span>{formatNumber(campaign.views)} 播放</span>
+                        <span>{formatNumber(campaign.saves)} 收藏</span>
+                        <span>{formatNumber(campaign.followers)} 涨粉</span>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </article>
+                  ))}
+                </div>
+              </article>
+            </section>
           </div>
         )}
 
@@ -1897,7 +1897,7 @@ function OverlookApp() {
             </section>
 
             <section className="panel">
-              <SectionTitle icon={<AlertTriangle size={18} />} title="差距扫描" action="自动补全 + 手动确认" />
+              <SectionTitle icon={<AlertTriangle size={18} />} title="差距扫描" action="扫描结果" />
               <div className="table-wrap">
                 <table className="data-table">
                   <thead>
