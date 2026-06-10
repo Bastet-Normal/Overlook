@@ -28,7 +28,7 @@
   --shadow: 0 1px 2px rgba(47, 58, 54, 0.035), 0 18px 42px rgba(47, 58, 54, 0.075);
   --shadow-soft: 0 1px 2px rgba(47, 58, 54, 0.035), 0 8px 22px rgba(47, 58, 54, 0.05);
   --radius: 8px;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", "Microsoft YaHei", sans-serif;
+  font-family: "Noto Sans SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei UI", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color: var(--text);
   background: var(--bg);
 }
@@ -1430,7 +1430,7 @@ select:focus {
   color: #1d1d1f;
   background: #fff;
   border: 1px solid #e5e7eb;
-  font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
+  font-family: "Noto Sans SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei UI", Arial, sans-serif;
 }
 
 .report-sheet header {
