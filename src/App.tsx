@@ -236,7 +236,7 @@ const defaultHours: Record<Platform, number[]> = {
   Douyin: [12, 19, 20, 21],
 }
 
-const contentMixColors = ['#0a84ff', '#009e9a', '#b7791f', '#6f67d9']
+const contentMixColors = ['#78958f', '#8fa7b0', '#b49a7d', '#a391a8']
 
 const emptyDraft: ContentDraft = {
   platform: 'Bilibili',
@@ -1409,12 +1409,12 @@ function OverlookApp() {
                 <div className="chart-box">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={trendData}>
-                      <CartesianGrid strokeDasharray="4 4" stroke="rgba(17,24,39,0.08)" />
-                      <XAxis dataKey="day" tick={{ fill: '#667085' }} stroke="rgba(17,24,39,0.12)" />
-                      <YAxis tickFormatter={(value: number) => formatNumber(value)} width={48} tick={{ fill: '#667085' }} stroke="rgba(17,24,39,0.12)" />
-                      <Tooltip formatter={(value: number) => plainNumber.format(value)} contentStyle={{ background: '#ffffff', border: '1px solid rgba(17,24,39,0.12)', borderRadius: '8px', color: '#111827' }} labelStyle={{ color: '#667085' }} itemStyle={{ color: '#111827' }} />
-                      <Line type="monotone" dataKey="views" stroke="#0a84ff" strokeWidth={3} dot={false} name="播放" isAnimationActive={false} />
-                      <Line type="monotone" dataKey="interactions" stroke="#009e9a" strokeWidth={2} dot={false} name="互动" isAnimationActive={false} />
+                      <CartesianGrid strokeDasharray="4 4" stroke="rgba(62,76,70,0.1)" />
+                      <XAxis dataKey="day" tick={{ fill: '#6f7a75' }} stroke="rgba(62,76,70,0.14)" />
+                      <YAxis tickFormatter={(value: number) => formatNumber(value)} width={48} tick={{ fill: '#6f7a75' }} stroke="rgba(62,76,70,0.14)" />
+                      <Tooltip formatter={(value: number) => plainNumber.format(value)} contentStyle={{ background: '#fbfaf6', border: '1px solid rgba(62,76,70,0.14)', borderRadius: '8px', color: '#26302c' }} labelStyle={{ color: '#6f7a75' }} itemStyle={{ color: '#26302c' }} />
+                      <Line type="monotone" dataKey="views" stroke="#78958f" strokeWidth={3} dot={false} name="播放" isAnimationActive={false} />
+                      <Line type="monotone" dataKey="interactions" stroke="#a391a8" strokeWidth={2} dot={false} name="互动" isAnimationActive={false} />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
@@ -1430,7 +1430,7 @@ function OverlookApp() {
                           <Cell key={entry.name} fill={contentMixColors[index % contentMixColors.length]} />
                         ))}
                       </Pie>
-                      <Tooltip formatter={(value: number) => formatNumber(value)} contentStyle={{ background: '#ffffff', border: '1px solid rgba(17,24,39,0.12)', borderRadius: '8px', color: '#111827' }} itemStyle={{ color: '#111827' }} />
+                      <Tooltip formatter={(value: number) => formatNumber(value)} contentStyle={{ background: '#fbfaf6', border: '1px solid rgba(62,76,70,0.14)', borderRadius: '8px', color: '#26302c' }} itemStyle={{ color: '#26302c' }} />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
