@@ -97,3 +97,19 @@ export interface PlatformSummary {
   avgViews: number
   topContent?: ContentItem
 }
+
+export type CompetitorDraft = Omit<Competitor, 'id'>
+
+export type ContentDraft = Omit<ContentItem, 'id'>
+
+export interface WorkspaceSnapshot {
+  version: number
+  exportedAt: string
+  content: ContentItem[]
+  accounts: Account[]
+  goal: Goal
+  competitors: Competitor[]
+  competitorSnapshots: CompetitorSnapshot[]
+  calendar: CalendarItem[]
+}
+

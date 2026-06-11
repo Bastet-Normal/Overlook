@@ -1,41 +1,47 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap');
 @import "tailwindcss";
 
 :root {
-  --bg: #eef1f4;
-  --canvas: #f7f6f2;
-  --sidebar: #e8ecea;
-  --surface: #fbfaf7;
-  --surface-muted: #f1f0eb;
-  --surface-hover: #ecefeb;
-  --surface-active: #e6ebef;
-  --fill: rgba(65, 72, 78, 0.05);
-  --fill-strong: rgba(65, 72, 78, 0.09);
-  --text: #252b2f;
-  --text-2: #454d53;
-  --muted: #737b82;
-  --muted-2: #a1a7ad;
-  --border: rgba(65, 72, 78, 0.13);
-  --border-soft: rgba(65, 72, 78, 0.085);
-  --border-focus: rgba(138, 154, 174, 0.52);
-  --blue: #8a9aae;
-  --blue-strong: #657789;
-  --teal: #8da89e;
-  --amber: #b8a27d;
-  --rose: #bd8895;
-  --violet: #a697bb;
-  --green: #819b8b;
-  --red: #b17378;
-  --tint-blue: #e8edf2;
-  --tint-teal: #e9f0ed;
-  --tint-amber: #f3ecdf;
-  --tint-rose: #f5e9ec;
-  --tint-violet: #eeebf2;
-  --tint-green: #ebf1ec;
-  --shadow: 0 1px 2px rgba(48, 54, 59, 0.035), 0 18px 42px rgba(48, 54, 59, 0.07);
-  --shadow-soft: 0 1px 2px rgba(48, 54, 59, 0.035), 0 8px 22px rgba(48, 54, 59, 0.05);
-  --radius: 8px;
-  font-family: "Noto Sans SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei UI", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  font-optical-sizing: auto;
+  /* Morandi palette background and surfaces */
+  --bg: #ecefe9;
+  --canvas: #f6f8f5;
+  --sidebar: #e3e7e0;
+  --surface: #fafbfa;
+  --surface-muted: #f0f3ed;
+  --surface-hover: #e8ece6;
+  --surface-active: #dfebd6;
+  --fill: rgba(110, 125, 115, 0.05);
+  --fill-strong: rgba(110, 125, 115, 0.1);
+  --text: #38403a;
+  --text-2: #525c55;
+  --muted: #7e8c82;
+  --muted-2: #abb5ae;
+  --border: rgba(110, 125, 115, 0.16);
+  --border-soft: rgba(110, 125, 115, 0.09);
+  --border-focus: rgba(143, 168, 155, 0.6);
+
+  /* Morandi accent colors */
+  --blue: #8fa0b0;        /* Muted slate blue */
+  --blue-strong: #6d7f90;
+  --teal: #8fa89b;        /* Muted sage green */
+  --amber: #c8b295;       /* Muted warm clay/sand */
+  --rose: #c8a2a9;        /* Muted dusty rose */
+  --violet: #a29bb0;      /* Muted lavender/lilac */
+  --green: #89a092;       /* Soft green */
+  --red: #c28d92;         /* Soft red */
+
+  /* Morandi soft tint backgrounds */
+  --tint-blue: #ebf1f5;
+  --tint-teal: #ebf2ee;
+  --tint-amber: #f5f0e9;
+  --tint-rose: #f6edf0;
+  --tint-violet: #f0ebf5;
+  --tint-green: #eef3f0;
+  --shadow: 0 1px 2px rgba(90, 100, 93, 0.03), 0 12px 36px rgba(90, 100, 93, 0.06);
+  --shadow-soft: 0 1px 2px rgba(90, 100, 93, 0.03), 0 6px 18px rgba(90, 100, 93, 0.04);
+  --radius: 12px;
+
+  font-family: 'Plus Jakarta Sans', 'Noto Sans SC', sans-serif;
   color: var(--text);
   background: var(--bg);
 }
@@ -419,6 +425,13 @@ button:focus-visible {
   min-width: 0;
   padding: 15px;
   overflow: hidden;
+  transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
+}
+
+.kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+  border-color: rgba(143, 168, 155, 0.3);
 }
 
 .kpi-card__top {
@@ -532,7 +545,9 @@ button:focus-visible {
   padding: 15px;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
 }
 
 .section-title {
@@ -745,6 +760,18 @@ button:focus-visible {
   border: 1px solid var(--border-soft);
   border-radius: var(--radius);
   background: var(--surface-muted);
+  transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease, background 200ms ease;
+}
+
+.campaign-card:hover,
+.calendar-card:hover,
+.repurpose-card:hover,
+.market-card:hover,
+.slot-card:hover {
+  transform: translateY(-1.5px);
+  box-shadow: var(--shadow-soft);
+  border-color: rgba(143, 168, 155, 0.25);
+  background: var(--surface-hover);
 }
 
 .campaign-card strong,
@@ -1642,15 +1669,15 @@ select:focus {
   }
 
   .view-stack--planner {
-    grid-template-rows: 214px minmax(0, 1fr) 164px;
+    grid-template-rows: 248px minmax(0, 1fr) 192px;
   }
 
   .view-stack--benchmarks {
-    grid-template-rows: 150px minmax(0, 1fr) 170px;
+    grid-template-rows: 168px minmax(0, 1fr) 200px;
   }
 
   .view-stack--accounts {
-    grid-template-rows: minmax(0, 1fr) 252px;
+    grid-template-rows: minmax(0, 1fr) 290px;
   }
 
   .panel--wide,
@@ -1781,15 +1808,15 @@ select:focus {
   }
 
   .view-stack--planner {
-    grid-template-rows: 206px minmax(0, 1fr) 176px;
+    grid-template-rows: 238px minmax(0, 1fr) 192px;
   }
 
   .view-stack--benchmarks {
-    grid-template-rows: 128px minmax(0, 1fr) 184px;
+    grid-template-rows: 152px minmax(0, 1fr) 200px;
   }
 
   .view-stack--accounts {
-    grid-template-rows: minmax(0, 1fr) 266px;
+    grid-template-rows: minmax(0, 1fr) 290px;
   }
 
   .insight-item,
@@ -1965,10 +1992,28 @@ select:focus {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(65, 72, 78, 0.16);
+  background: rgba(110, 125, 115, 0.2);
   border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(65, 72, 78, 0.24);
+  background: rgba(110, 125, 115, 0.35);
+}
+
+.section-title,
+.content-form,
+.goal-form,
+.progress-grid,
+.slot-grid,
+.calendar-grid,
+.repurpose-grid,
+.snapshot-grid,
+.platform-list,
+.experiment-list,
+.campaign-grid,
+.backup-actions,
+.undo-card,
+.toggle-row,
+.health-list {
+  flex-shrink: 0;
 }
