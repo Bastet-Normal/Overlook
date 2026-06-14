@@ -1,9 +1,9 @@
 import { Eye, Heart, Users, Trophy, TrendingUp, Database, Lightbulb, Flame, CalendarDays } from 'lucide-react'
 import {
+  Area,
+  AreaChart,
   CartesianGrid,
   Cell,
-  Line,
-  LineChart,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -15,10 +15,10 @@ import { KPICard } from './KPICard'
 import { SectionTitle } from './SectionTitle'
 import type { PlatformSummary } from '../types'
 import type { ActionExperiment } from '../utils/calendarHelpers'
-import { formatNumber, formatPercent, plainNumber } from '../utils/dashboardHelpers'
+import { formatNumber, formatPercent } from '../utils/dashboardHelpers'
 import { platformColors } from '../utils/mockData'
 
-const contentMixColors = ['#8a9aae', '#8da89e', '#b8a27d', '#a697bb']
+const contentMixColors = ['#3a98ff', '#00f5d4', '#f59e0b', '#a855f7']
 
 interface OverviewViewProps {
   totals: {
@@ -35,6 +35,35 @@ interface OverviewViewProps {
   summaries: PlatformSummary[]
   campaignRows: Array<{ campaign: string; posts: number; views: number; saves: number; followers: number }>
   contentLength: number
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const filteredPayload = payload.filter((item: any) => 
+      !item.name.endsWith('-glow') && 
+      !item.name.endsWith('-fill') && 
+      item.stroke && 
+      item.stroke !== 'none'
+    )
+    return (
+      <div className="custom-chart-tooltip">
+        <div className="tooltip-header">{label}</div>
+        <div className="tooltip-body">
+          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+          {filteredPayload.map((item: any) => (
+            <div className="tooltip-row" key={item.name}>
+              <span className="tooltip-color-indicator" style={{ background: item.stroke }} />
+              <span className="tooltip-item-name">{item.name}</span>
+              <strong className="tooltip-item-value">{formatNumber(item.value)}</strong>
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+  return null
 }
 
 export function OverviewView({
@@ -60,14 +89,139 @@ export function OverviewView({
           <SectionTitle icon={<TrendingUp size={18} />} title="内容表现趋势" action={`${trendData.length} 个时间点`} />
           <div className="chart-box">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={trendData}>
-                <CartesianGrid strokeDasharray="4 4" stroke="rgba(65,72,78,0.1)" />
-                <XAxis dataKey="day" tick={{ fill: '#737b82' }} stroke="rgba(65,72,78,0.14)" />
-                <YAxis tickFormatter={(value: number) => formatNumber(value)} width={48} tick={{ fill: '#737b82' }} stroke="rgba(65,72,78,0.14)" />
-                <Tooltip formatter={(value: number) => plainNumber.format(value)} contentStyle={{ background: '#fbfaf7', border: '1px solid rgba(65,72,78,0.14)', borderRadius: '8px', color: '#252b2f' }} labelStyle={{ color: '#737b82' }} itemStyle={{ color: '#252b2f' }} />
-                <Line type="monotone" dataKey="views" stroke="#8a9aae" strokeWidth={3} dot={false} name="播放" isAnimationActive={false} />
-                <Line type="monotone" dataKey="interactions" stroke="#a697bb" strokeWidth={2} dot={false} name="互动" isAnimationActive={false} />
-              </LineChart>
+              <AreaChart data={trendData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorViews" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="var(--blue)" stopOpacity={0.22}/>
+                    <stop offset="95%" stopColor="var(--blue)" stopOpacity={0.0}/>
+                  </linearGradient>
+                  <linearGradient id="colorInteractions" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="var(--rose)" stopOpacity={0.18}/>
+                    <stop offset="95%" stopColor="var(--rose)" stopOpacity={0.0}/>
+                  </linearGradient>
+                  <filter id="viewsGlow" x="-20%" y="-20%" width="140%" height="140%">
+                    <feGaussianBlur stdDeviation="3.5" result="blur" />
+                    <feMerge>
+                      <feMergeNode in="blur" />
+                      <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                  </filter>
+                  <filter id="interactionsGlow" x="-20%" y="-20%" width="140%" height="140%">
+                    <feGaussianBlur stdDeviation="3" result="blur" />
+                    <feMerge>
+                      <feMergeNode in="blur" />
+                      <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                  </filter>
+                  <filter id="activeDotGlow" x="-40%" y="-40%" width="180%" height="180%">
+                    <feGaussianBlur stdDeviation="3" result="blur" />
+                    <feColorMatrix type="matrix" values="
+                      1 0 0 0 0
+                      0 1 0 0 0
+                      0 0 1 0 0
+                      0 0 0 2 0
+                    " />
+                    <feMerge>
+                      <feMergeNode in="blur" />
+                      <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                  </filter>
+                </defs>
+                <CartesianGrid strokeDasharray="4 4" stroke="rgba(255, 255, 255, 0.03)" vertical={false} />
+                <XAxis 
+                  dataKey="day" 
+                  tick={{ fill: 'var(--muted)', fontSize: 10, fontWeight: 500 }} 
+                  tickLine={false}
+                  axisLine={false}
+                  dy={10}
+                />
+                <YAxis 
+                  tickFormatter={(value: number) => formatNumber(value)} 
+                  tick={{ fill: 'var(--muted)', fontSize: 10, fontWeight: 500 }} 
+                  tickLine={false}
+                  axisLine={false}
+                  dx={-10}
+                />
+                <Tooltip content={<CustomTooltip />} />
+                
+                {/* Area Fills */}
+                <Area 
+                  type="monotone" 
+                  dataKey="views" 
+                  stroke="none" 
+                  fillOpacity={1} 
+                  fill="url(#colorViews)" 
+                  name="播放-fill" 
+                  dot={false} 
+                  activeDot={false}
+                  isAnimationActive={false} 
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="interactions" 
+                  stroke="none" 
+                  fillOpacity={1} 
+                  fill="url(#colorInteractions)" 
+                  name="互动-fill" 
+                  dot={false} 
+                  activeDot={false}
+                  isAnimationActive={false} 
+                />
+
+                {/* Glowing Stroke Lines */}
+                <Area 
+                  type="monotone" 
+                  dataKey="views" 
+                  stroke="var(--blue)" 
+                  strokeWidth={6} 
+                  fill="none" 
+                  opacity={0.35}
+                  filter="url(#viewsGlow)"
+                  legendType="none"
+                  name="播放-glow" 
+                  dot={false} 
+                  activeDot={false}
+                  isAnimationActive={false} 
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="interactions" 
+                  stroke="var(--rose)" 
+                  strokeWidth={5} 
+                  fill="none" 
+                  opacity={0.3}
+                  filter="url(#interactionsGlow)"
+                  legendType="none"
+                  name="互动-glow" 
+                  dot={false} 
+                  activeDot={false}
+                  isAnimationActive={false} 
+                />
+
+                {/* Sharp Core Stroke Lines */}
+                <Area 
+                  type="monotone" 
+                  dataKey="views" 
+                  stroke="var(--blue)" 
+                  strokeWidth={2.5} 
+                  fill="none" 
+                  name="播放" 
+                  dot={false} 
+                  activeDot={{ r: 5.5, stroke: '#fff', strokeWidth: 2, fill: 'var(--blue)', filter: 'url(#activeDotGlow)' } as unknown as Record<string, unknown>}
+                  isAnimationActive={false} 
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="interactions" 
+                  stroke="var(--rose)" 
+                  strokeWidth={2} 
+                  fill="none" 
+                  name="互动" 
+                  dot={false} 
+                  activeDot={{ r: 5, stroke: '#fff', strokeWidth: 2, fill: 'var(--rose)', filter: 'url(#activeDotGlow)' } as unknown as Record<string, unknown>}
+                  isAnimationActive={false} 
+                />
+              </AreaChart>
             </ResponsiveContainer>
           </div>
         </article>
@@ -82,7 +236,18 @@ export function OverviewView({
                     <Cell key={entry.name} fill={contentMixColors[index % contentMixColors.length]} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value: number) => formatNumber(value)} contentStyle={{ background: '#fbfaf7', border: '1px solid rgba(65,72,78,0.14)', borderRadius: '8px', color: '#252b2f' }} itemStyle={{ color: '#252b2f' }} />
+                <Tooltip 
+                  formatter={(value: number) => formatNumber(value)} 
+                  contentStyle={{ 
+                    background: 'rgba(17, 22, 28, 0.95)', 
+                    border: '1px solid rgba(255, 255, 255, 0.1)', 
+                    borderRadius: '12px', 
+                    color: '#f8fafc',
+                    boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
+                    backdropFilter: 'blur(12px)'
+                  }} 
+                  itemStyle={{ color: '#f8fafc' }} 
+                />
               </PieChart>
             </ResponsiveContainer>
           </div>

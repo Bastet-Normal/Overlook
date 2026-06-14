@@ -213,7 +213,7 @@ export function ContentView({
                     <td>{formatNumber(item.likes + item.comments + item.shares + item.saves)}</td>
                     <td>{formatNumber(item.saves)}</td>
                     <td>
-                      {item.publishedAt} {String(item.hour).padStart(2, '0')}:00
+                      {item.publishedAt.slice(5)} {String(item.hour).padStart(2, '0')}:00
                     </td>
                     <td>
                       <button
