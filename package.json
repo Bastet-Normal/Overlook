@@ -15,7 +15,7 @@
     "verify": "npm run lint && npm run typecheck && npm run build && npm run visual:smoke",
     "deploy": "gh-pages -d dist"
   },
-  "homepage": "https://wangjiehu.github.io/Overlook",
+  "homepage": "https://bastet-normal.github.io/Overlook",
   "dependencies": {
     "html2canvas": "^1.4.1",
     "jspdf": "^4.2.1",
