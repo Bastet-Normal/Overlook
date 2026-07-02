@@ -20,6 +20,23 @@ import { platformColors } from '../utils/mockData'
 
 const contentMixColors = ['var(--blue)', 'var(--teal)', 'var(--amber)', 'var(--violet)']
 
+type TooltipPayloadItem = {
+  name?: string | number
+  value?: string | number
+  stroke?: string
+}
+
+type CustomTooltipProps = {
+  active?: boolean
+  payload?: TooltipPayloadItem[]
+  label?: string | number
+}
+
+function formatTooltipValue(value: TooltipPayloadItem['value']) {
+  const numericValue = Number(value ?? 0)
+  return formatNumber(Number.isFinite(numericValue) ? numericValue : 0)
+}
+
 interface OverviewViewProps {
   totals: {
     views: number
@@ -37,26 +54,26 @@ interface OverviewViewProps {
   contentLength: number
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const CustomTooltip = ({ active, payload, label }: any) => {
+const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   if (active && payload && payload.length) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const filteredPayload = payload.filter((item: any) => 
-      !item.name.endsWith('-glow') && 
-      !item.name.endsWith('-fill') && 
-      item.stroke && 
-      item.stroke !== 'none'
-    )
+    const filteredPayload = payload.filter((item) => {
+      const name = String(item.name ?? '')
+      return (
+        !name.endsWith('-glow') &&
+        !name.endsWith('-fill') &&
+        item.stroke &&
+        item.stroke !== 'none'
+      )
+    })
     return (
       <div className="custom-chart-tooltip">
         <div className="tooltip-header">{label}</div>
         <div className="tooltip-body">
-          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-          {filteredPayload.map((item: any) => (
-            <div className="tooltip-row" key={item.name}>
+          {filteredPayload.map((item) => (
+            <div className="tooltip-row" key={String(item.name)}>
               <span className="tooltip-color-indicator" style={{ background: item.stroke }} />
               <span className="tooltip-item-name">{item.name}</span>
-              <strong className="tooltip-item-value">{formatNumber(item.value)}</strong>
+              <strong className="tooltip-item-value">{formatTooltipValue(item.value)}</strong>
             </div>
           ))}
         </div>

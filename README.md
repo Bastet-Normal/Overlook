@@ -125,7 +125,7 @@ npm run verify
 
 项目已经配置了完备的 GitHub Actions 自动工作流 [deploy.yml](.github/workflows/deploy.yml)。
 
-一旦代码被推送（Push）至 `main` 分支，GitHub Actions 将会自动执行 `npm run verify` 套件，在校验无误后自动将打包产物推送到 `gh-pages` 分支进行无缝部署。
+一旦代码被推送（Push）至 `main` 分支，GitHub Actions 将会自动执行 `npm run verify` 套件，在校验无误后通过 GitHub Pages artifact 流程发布 `dist` 产物。
 
 > Vite 编译基础路径已设定为相对路径 `base: './'`，可完美适配任何子目录或 GitHub Pages 项目页地址。
 

@@ -23,6 +23,7 @@ import {
   intentLabel,
   isWorkspaceSnapshot,
   snapshotTimestamp,
+  statusLabel,
   sumBy
 } from './utils/dashboardHelpers'
 import {
@@ -45,6 +46,28 @@ import type { RestorePreview } from './components/RestorePreviewModal'
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
+}
+
+type Theme = 'dark' | 'light'
+
+const THEME_STORAGE_KEY = 'overlook-theme'
+
+function readStoredTheme(): Theme {
+  if (typeof window === 'undefined') return 'dark'
+  try {
+    const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY)
+    return storedTheme === 'light' || storedTheme === 'dark' ? storedTheme : 'dark'
+  } catch {
+    return 'dark'
+  }
+}
+
+function persistTheme(theme: Theme) {
+  try {
+    window.localStorage.setItem(THEME_STORAGE_KEY, theme)
+  } catch {
+    // Theme persistence is optional; the in-memory UI state still updates.
+  }
 }
 
 const viewMeta: Record<ViewKey, { eyebrow: string; title: string; summary: string }> = {
@@ -96,16 +119,11 @@ function OverlookApp() {
   // competitor scan states and actions hook
   const scanner = useCompetitorScan()
 
-  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
-    if (typeof window !== 'undefined') {
-      return (localStorage.getItem('overlook-theme') as 'dark' | 'light') || 'dark'
-    }
-    return 'dark'
-  })
+  const [theme, setTheme] = useState<Theme>(readStoredTheme)
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
-    localStorage.setItem('overlook-theme', theme)
+    persistTheme(theme)
   }, [theme])
 
   const toggleTheme = () => {
@@ -507,14 +525,12 @@ function OverlookApp() {
 
   const copyPlan = async () => {
     const text = ws.calendar.map((item) => `${item.day} ${item.time}｜${item.platform}｜${item.title}｜${statusLabel[item.status]}`).join('\n')
-    await navigator.clipboard.writeText(text)
-    toast.success('计划已复制')
-  }
-
-  const statusLabel: Record<'draft' | 'scheduled' | 'done', string> = {
-    draft: '草稿',
-    scheduled: '已排期',
-    done: '已完成',
+    try {
+      await navigator.clipboard.writeText(text)
+      toast.success('计划已复制')
+    } catch {
+      toast.error('剪贴板不可用，请手动复制排期')
+    }
   }
 
   return (
