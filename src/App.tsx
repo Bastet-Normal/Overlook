@@ -96,6 +96,22 @@ function OverlookApp() {
   // competitor scan states and actions hook
   const scanner = useCompetitorScan()
 
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('overlook-theme') as 'dark' | 'light') || 'dark'
+    }
+    return 'dark'
+  })
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme)
+    localStorage.setItem('overlook-theme', theme)
+  }, [theme])
+
+  const toggleTheme = () => {
+    setTheme((t) => (t === 'dark' ? 'light' : 'dark'))
+  }
+
   useEffect(() => {
     if ('serviceWorker' in navigator && window.location.protocol !== 'file:') {
       const swUrl = `${import.meta.env.BASE_URL}sw.js`
@@ -514,6 +530,8 @@ function OverlookApp() {
         onResetWorkspace={ws.resetWorkspace}
         onInstall={handleInstall}
         showInstall={Boolean(deferredPrompt)}
+        theme={theme}
+        onToggleTheme={toggleTheme}
       />
       <input ref={fileInputRef} type="file" accept=".csv,text/csv" className="sr-only" onChange={handleCSVImport} />
       <input ref={workspaceFileRef} type="file" accept="application/json,.json" className="sr-only" onChange={handleRestoreWorkspace} />

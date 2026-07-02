@@ -1,4 +1,4 @@
-import { BarChart3, CalendarDays, Database, Download, FileJson, FileText, Gauge, Radar, RefreshCw, Upload, UserRound } from 'lucide-react'
+import { BarChart3, CalendarDays, Database, Download, FileJson, FileText, Gauge, Radar, RefreshCw, Upload, UserRound, Sun, Moon } from 'lucide-react'
 import type { Dispatch, SetStateAction } from 'react'
 import type { ViewKey } from '../types'
 
@@ -12,6 +12,8 @@ interface NavbarProps {
   onResetWorkspace: () => void
   onInstall?: () => void
   showInstall: boolean
+  theme: 'dark' | 'light'
+  onToggleTheme: () => void
 }
 
 const tabs: Array<{ key: ViewKey; label: string; icon: typeof Gauge }> = [
@@ -32,6 +34,8 @@ export function Navbar({
   onResetWorkspace,
   onInstall,
   showInstall,
+  theme,
+  onToggleTheme,
 }: NavbarProps) {
   return (
     <header className="app-nav">
@@ -91,6 +95,10 @@ export function Navbar({
           </div>
 
           <div className="command-group command-group--quiet">
+            <button className="action-button action-button--ghost" onClick={onToggleTheme} title={theme === 'dark' ? '切换至亮色模式' : '切换至暗色模式'}>
+              {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+              <span>{theme === 'dark' ? '亮色' : '暗色'}</span>
+            </button>
             <button className="action-button action-button--danger" onClick={onResetWorkspace}>
               <RefreshCw size={16} />
               <span>恢复示例</span>

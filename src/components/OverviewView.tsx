@@ -18,7 +18,7 @@ import type { ActionExperiment } from '../utils/calendarHelpers'
 import { formatNumber, formatPercent } from '../utils/dashboardHelpers'
 import { platformColors } from '../utils/mockData'
 
-const contentMixColors = ['#3a98ff', '#00f5d4', '#f59e0b', '#a855f7']
+const contentMixColors = ['var(--blue)', 'var(--teal)', 'var(--amber)', 'var(--violet)']
 
 interface OverviewViewProps {
   totals: {
@@ -127,7 +127,7 @@ export function OverviewView({
                     </feMerge>
                   </filter>
                 </defs>
-                <CartesianGrid strokeDasharray="4 4" stroke="rgba(255, 255, 255, 0.03)" vertical={false} />
+                <CartesianGrid strokeDasharray="4 4" stroke="var(--border-soft)" vertical={false} />
                 <XAxis 
                   dataKey="day" 
                   tick={{ fill: 'var(--muted)', fontSize: 10, fontWeight: 500 }} 
