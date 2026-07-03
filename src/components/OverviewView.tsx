@@ -4,6 +4,7 @@ import {
   AreaChart,
   CartesianGrid,
   Cell,
+  Label,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -18,7 +19,7 @@ import type { ActionExperiment } from '../utils/calendarHelpers'
 import { formatNumber, formatPercent } from '../utils/dashboardHelpers'
 import { platformColors } from '../utils/mockData'
 
-const contentMixColors = ['var(--blue)', 'var(--teal)', 'var(--amber)', 'var(--violet)']
+const contentMixColors = ['var(--mix-blue)', 'var(--mix-teal)', 'var(--mix-amber)', 'var(--mix-violet)']
 
 type TooltipPayloadItem = {
   name?: string | number
@@ -248,22 +249,37 @@ export function OverviewView({
           <div className="chart-box chart-box--compact">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={contentMix} dataKey="value" nameKey="name" innerRadius={44} outerRadius={68} paddingAngle={3} isAnimationActive={false}>
+                <Pie
+                  data={contentMix}
+                  dataKey="value"
+                  nameKey="name"
+                  innerRadius={50}
+                  outerRadius={76}
+                  paddingAngle={2}
+                  startAngle={90}
+                  endAngle={-270}
+                  cornerRadius={7}
+                  stroke="var(--surface)"
+                  strokeWidth={5}
+                  isAnimationActive={false}
+                >
+                  <Label value="播放结构" position="center" className="donut-center-label" />
                   {contentMix.map((entry, index) => (
                     <Cell key={entry.name} fill={contentMixColors[index % contentMixColors.length]} />
                   ))}
                 </Pie>
                 <Tooltip 
                   formatter={(value: number) => formatNumber(value)} 
-                  contentStyle={{ 
-                    background: 'rgba(17, 22, 28, 0.95)', 
-                    border: '1px solid rgba(255, 255, 255, 0.1)', 
-                    borderRadius: '12px', 
-                    color: '#f8fafc',
-                    boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
-                    backdropFilter: 'blur(12px)'
-                  }} 
-                  itemStyle={{ color: '#f8fafc' }} 
+                  contentStyle={{
+                    background: 'var(--tooltip-bg)',
+                    border: '1px solid var(--tooltip-border)',
+                    borderRadius: '12px',
+                    color: 'var(--text)',
+                    boxShadow: 'var(--shadow-soft)',
+                    backdropFilter: 'blur(12px)',
+                  }}
+                  itemStyle={{ color: 'var(--text)' }}
+                  labelStyle={{ color: 'var(--muted)' }}
                 />
               </PieChart>
             </ResponsiveContainer>
