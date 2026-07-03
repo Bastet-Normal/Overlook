@@ -259,8 +259,7 @@ export function OverviewView({
                   startAngle={90}
                   endAngle={-270}
                   cornerRadius={7}
-                  stroke="var(--surface)"
-                  strokeWidth={5}
+                  stroke="none"
                   isAnimationActive={false}
                 >
                   <Label value="播放结构" position="center" className="donut-center-label" />

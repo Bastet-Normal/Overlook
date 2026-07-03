@@ -206,6 +206,117 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+body,
+.app-nav,
+.brand-button,
+.tab-button,
+.action-button,
+.icon-button,
+.workspace-header,
+.panel,
+.kpi-card,
+.status-strip,
+.section-title > span,
+.section-title__icon,
+.insight-item,
+.experiment-card,
+.platform-row,
+.health-row,
+.campaign-card,
+.calendar-card,
+.repurpose-card,
+.market-card,
+.slot-card,
+.mini-metrics span,
+.time-pill,
+.objective-pill,
+.status-pill,
+.tag-row span,
+input,
+select,
+.search-field,
+.table-wrap,
+.data-table th,
+.modal-panel,
+.preview-metrics div,
+.mapping-summary div,
+.preview-row,
+.restore-card,
+.custom-chart-tooltip,
+.recharts-default-tooltip {
+  transition:
+    background-color 240ms ease,
+    background 240ms ease,
+    border-color 240ms ease,
+    color 200ms ease,
+    box-shadow 240ms ease;
+}
+
+.recharts-pie-sector path,
+.compact-legend i,
+.tooltip-color-indicator,
+.platform-dot {
+  transition:
+    fill 240ms ease,
+    stroke 240ms ease,
+    background-color 240ms ease,
+    box-shadow 240ms ease;
+}
+
+.donut-center-label,
+.recharts-cartesian-axis-tick text {
+  transition: fill 200ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body,
+  .app-nav,
+  .brand-button,
+  .tab-button,
+  .action-button,
+  .icon-button,
+  .workspace-header,
+  .panel,
+  .kpi-card,
+  .status-strip,
+  .section-title > span,
+  .section-title__icon,
+  .insight-item,
+  .experiment-card,
+  .platform-row,
+  .health-row,
+  .campaign-card,
+  .calendar-card,
+  .repurpose-card,
+  .market-card,
+  .slot-card,
+  .mini-metrics span,
+  .time-pill,
+  .objective-pill,
+  .status-pill,
+  .tag-row span,
+  input,
+  select,
+  .search-field,
+  .table-wrap,
+  .data-table th,
+  .modal-panel,
+  .preview-metrics div,
+  .mapping-summary div,
+  .preview-row,
+  .restore-card,
+  .custom-chart-tooltip,
+  .recharts-default-tooltip,
+  .recharts-pie-sector path,
+  .compact-legend i,
+  .tooltip-color-indicator,
+  .platform-dot,
+  .donut-center-label,
+  .recharts-cartesian-axis-tick text {
+    transition: none;
+  }
+}
+
 /* Premium Glassmorphic Scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
