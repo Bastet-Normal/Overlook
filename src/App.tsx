@@ -289,6 +289,7 @@ function OverlookApp() {
             platformFilter={platformFilter}
             setPlatformFilter={setPlatformFilter}
             onAddContent={ws.addContent}
+            onUpdateContent={ws.editContent}
             onDeleteContent={ws.removeContent}
             onExportCsv={handleExportCsv}
           />

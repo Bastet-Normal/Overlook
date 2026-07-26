@@ -88,21 +88,21 @@ export function AccountsView({
                   )
                 }
               >
-                <option value="connected">connected</option>
-                <option value="manual">manual</option>
-                <option value="missing">missing</option>
+                <option value="connected">已连接</option>
+                <option value="manual">手动维护</option>
+                <option value="missing">待配置</option>
               </select>
             </label>
-            <small>Last sync: {account.lastSync}</small>
+            <small>最后更新：{account.lastSync}</small>
           </article>
         ))}
       </section>
 
       <section className="dashboard-grid">
         <article className="panel">
-          <SectionTitle icon={<Smartphone size={18} />} title="PWA" action={offlineReady ? '离线就绪' : '等待缓存'} />
+          <SectionTitle icon={<Smartphone size={18} />} title="离线能力" action={offlineReady ? '已就绪' : '准备中'} />
           <div className="health-list">
-            <HealthRow ok={offlineReady} label="Service Worker" />
+            <HealthRow ok={offlineReady} label="页面离线缓存" />
             <HealthRow ok={contentLength > 0} label="本地数据" />
             <HealthRow ok={sponsorScore >= 60} label="合作报告素材" />
             <HealthRow ok={competitorsLength > 0} label="竞品样本" />

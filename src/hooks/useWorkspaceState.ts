@@ -133,6 +133,19 @@ export function useWorkspaceState() {
     if (updateContent((current) => [normalized, ...current])) toast.success('内容已加入看板')
   }
 
+  const editContent = (id: string, item: Omit<ContentItem, 'id'>) => {
+    captureWorkspaceUndo('编辑内容前状态')
+    const normalized = normalizeContentItem({
+      ...item,
+      id,
+      title: item.title.trim(),
+      hook: item.hook.trim() || item.title.trim(),
+    } as ContentItem)
+    if (updateContent((current) => current.map((entry) => (entry.id === id ? normalized : entry)))) {
+      toast.success('内容已更新，可在“账号”页撤销')
+    }
+  }
+
   const removeContent = (id: string) => {
     captureWorkspaceUndo('删除内容前状态')
     if (updateContent((current) => current.filter((item) => item.id !== id))) {
@@ -210,6 +223,7 @@ export function useWorkspaceState() {
     restoreLastWorkspaceUndo,
     resetWorkspace,
     addContent,
+    editContent,
     removeContent,
     addCompetitor,
     removeCompetitor,

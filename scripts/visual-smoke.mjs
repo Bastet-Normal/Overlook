@@ -78,7 +78,7 @@ async function readMetrics(page) {
       scroll: [doc.scrollWidth, doc.scrollHeight],
       overflowX: doc.scrollWidth > window.innerWidth + 1,
       overflowY: doc.scrollHeight > window.innerHeight + 1,
-      tabs: document.querySelectorAll('.tab-button').length,
+      tabs: [...document.querySelectorAll('.tab-button')].filter((element) => getComputedStyle(element).display !== 'none' && element.getClientRects().length > 0).length,
       panels: document.querySelectorAll('.panel').length,
       commands: document.querySelectorAll('.nav-actions button, .workspace-toolbar button').length,
     }
@@ -94,7 +94,7 @@ const desktopViews = [
 ]
 
 async function assertDesktopView(page, view) {
-  await page.locator(`.tab-button[data-view="${view.key}"]`).click()
+  await page.locator(`.tab-strip--desktop .tab-button[data-view="${view.key}"]`).click()
   await page.waitForTimeout(100)
   const metrics = await readMetrics(page)
   if (metrics.overflowX) {
@@ -143,7 +143,7 @@ async function main() {
     await desktop.locator('.nav-actions button[title="切换至暗色模式"]').click()
     await desktop.locator('html[data-theme="dark"]').waitFor({ timeout: 500 })
 
-    await desktop.locator('.tab-button[data-view="benchmarks"]').click()
+    await desktop.locator('.tab-strip--desktop .tab-button[data-view="benchmarks"]').click()
     await desktop.locator('input[placeholder="@handle 或账号名"]').fill('@auto_scan_demo')
     await desktop.waitForTimeout(800)
     const scannedDraft = await desktop.evaluate(() => {
@@ -180,11 +180,17 @@ async function main() {
       throw new Error(`unified workspace persistence failed: ${JSON.stringify(persistedWorkspace)}`)
     }
 
-    await desktop.locator('.tab-button[data-view="content"]').click()
+    await desktop.locator('.tab-strip--desktop .tab-button[data-view="content"]').click()
     await desktop.getByRole('button', { name: '新增内容', exact: true }).click()
     await desktop.getByRole('dialog', { name: '新增内容' }).waitFor()
-    await desktop.getByRole('button', { name: '关闭新增内容', exact: true }).click()
+    await desktop.getByRole('button', { name: '关闭内容编辑', exact: true }).click()
     await desktop.getByRole('dialog', { name: '新增内容' }).waitFor({ state: 'hidden' })
+    const firstContentTitle = await desktop.locator('.data-table tbody tr').first().locator('td').first().locator('strong').textContent()
+    await desktop.locator('.data-table tbody tr').first().getByRole('button', { name: /^编辑 / }).click()
+    await desktop.getByRole('dialog', { name: '编辑内容' }).waitFor()
+    await desktop.getByLabel('标题').fill(`${firstContentTitle} · 已编辑`)
+    await desktop.getByRole('button', { name: '保存修改', exact: true }).click()
+    await desktop.getByText(`${firstContentTitle} · 已编辑`, { exact: true }).waitFor()
     await desktop.locator('input[accept=".csv,text/csv"]').setInputFiles(importCsvPath)
     await desktop.getByRole('dialog', { name: 'CSV 导入预览' }).waitFor()
     const importMetrics = await desktop.locator('.preview-metrics strong').allTextContents()
@@ -199,8 +205,8 @@ async function main() {
     await desktop.keyboard.press('Escape')
     await desktop.getByRole('dialog', { name: '工作区恢复预览' }).waitFor({ state: 'hidden' })
 
-    await desktop.locator('.tab-button[data-view="overview"]').click()
-    await desktop.locator('.tab-button--active[data-view="overview"]').waitFor()
+    await desktop.locator('.tab-strip--desktop .tab-button[data-view="overview"]').click()
+    await desktop.locator('.tab-strip--desktop .tab-button--active[data-view="overview"]').waitFor()
     await desktop.locator('.recharts-surface').first().waitFor()
     await desktop.waitForTimeout(300)
     await desktop.locator('.export-menu > summary').click()
@@ -220,7 +226,7 @@ async function main() {
     if (!downloadedReport.suggestedFilename().endsWith('.pdf')) {
       throw new Error(`PDF report export failed: ${downloadedReport.suggestedFilename()}`)
     }
-    await desktop.locator('.export-menu > summary').click()
+    await desktop.locator('.export-menu:not([open])').waitFor()
     await desktop.screenshot({ path: path.join(outDir, 'desktop-1280x760.png'), fullPage: false })
 
     const wide = await browser.newPage({ viewport: { width: 1440, height: 900 } })
@@ -239,7 +245,53 @@ async function main() {
     if (mobileMetrics.overflowX || mobileMetrics.tabs !== 5) {
       throw new Error(`mobile layout failure: ${JSON.stringify(mobileMetrics)}`)
     }
+    const mobileNav = await mobile.locator('.tab-strip--mobile').evaluate((element) => {
+      const rect = element.getBoundingClientRect()
+      const style = getComputedStyle(element)
+      return {
+        rect: [rect.left, rect.top, rect.right, rect.bottom],
+        viewport: [window.innerWidth, window.innerHeight],
+        position: style.position,
+        zIndex: style.zIndex,
+        display: style.display,
+        visible: rect.bottom > 0 && rect.top < window.innerHeight && style.visibility !== 'hidden',
+        hitClass: document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2)?.className ?? null,
+        hitInside: element.contains(document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2)),
+      }
+    })
+    if (!mobileNav.visible || mobileNav.position !== 'sticky' || !mobileNav.hitInside) {
+      throw new Error(`mobile navigation unavailable: ${JSON.stringify(mobileNav)}`)
+    }
     await mobile.screenshot({ path: path.join(outDir, 'mobile-390.png'), fullPage: false })
+    const mobileContentButton = mobile.locator('.tab-strip--mobile .tab-button[data-view="content"]')
+    const mobileContentHit = await mobileContentButton.evaluate((element) => {
+      const rect = element.getBoundingClientRect()
+      const hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2)
+      return {
+        rect: [rect.left, rect.top, rect.right, rect.bottom],
+        center: [rect.left + rect.width / 2, rect.top + rect.height / 2],
+        hitClass: hit?.className ?? null,
+        hitInside: element.contains(hit),
+      }
+    })
+    if (!mobileContentHit.hitInside) {
+      throw new Error(`mobile content navigation covered: ${JSON.stringify({ mobileNav, mobileContentHit })}`)
+    }
+    await mobile.mouse.click(mobileContentHit.center[0], mobileContentHit.center[1])
+    await mobile.locator('.view-stack--content').waitFor()
+    const mobileContent = await mobile.evaluate(() => {
+      const row = document.querySelector('.view-stack--content .data-table tbody tr:not(.empty-row)')
+      const rect = row?.getBoundingClientRect()
+      return {
+        overflowX: document.documentElement.scrollWidth > window.innerWidth + 1,
+        rowDisplay: row ? getComputedStyle(row).display : null,
+        rowWidth: rect?.width ?? 0,
+      }
+    })
+    if (mobileContent.overflowX || mobileContent.rowDisplay !== 'grid' || mobileContent.rowWidth > 370) {
+      throw new Error(`mobile content cards failed: ${JSON.stringify(mobileContent)}`)
+    }
+    await mobile.screenshot({ path: path.join(outDir, 'mobile-content-390.png'), fullPage: false })
 
     console.log(`visual smoke passed; screenshots: ${outDir}`)
   } finally {
