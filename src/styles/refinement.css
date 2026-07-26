@@ -129,7 +129,8 @@ select {
 
 .workspace-header {
   position: relative;
-  overflow: hidden;
+  z-index: 20;
+  overflow: visible;
   isolation: isolate;
 }
 
@@ -472,6 +473,8 @@ select:focus,
 /* Workspace layout v2: an editorial workbench instead of a fixed cockpit. */
 
 .workspace-heading-row {
+  position: relative;
+  z-index: 3;
   display: flex;
   align-items: center;
   justify-content: space-between;

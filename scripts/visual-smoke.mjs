@@ -204,6 +204,16 @@ async function main() {
     await desktop.locator('.recharts-surface').first().waitFor()
     await desktop.waitForTimeout(300)
     await desktop.locator('.export-menu > summary').click()
+    await desktop.locator('.export-menu__panel').waitFor({ state: 'visible' })
+    const exportMenuVisible = await desktop.locator('.export-menu__panel').evaluate((panel) => {
+      const rect = panel.getBoundingClientRect()
+      const sampleX = Math.min(window.innerWidth - 1, Math.max(0, rect.left + rect.width / 2))
+      const sampleY = Math.min(window.innerHeight - 1, Math.max(0, rect.top + Math.min(rect.height / 2, 48)))
+      return panel.contains(document.elementFromPoint(sampleX, sampleY))
+    })
+    if (!exportMenuVisible) {
+      throw new Error('export menu is clipped or covered')
+    }
     const pdfDownload = desktop.waitForEvent('download')
     await desktop.getByRole('button', { name: '合作报告 PDF', exact: true }).click()
     const downloadedReport = await pdfDownload

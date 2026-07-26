@@ -207,43 +207,10 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-::view-transition-old(root),
-::view-transition-new(root) {
-  animation-duration: 140ms;
-  animation-timing-function: cubic-bezier(0.2, 0.7, 0.2, 1);
-  mix-blend-mode: normal;
-}
-
-.theme-switching body,
-.theme-switching .app-nav,
-.theme-switching .workspace-header,
-.theme-switching .panel,
-.theme-switching .kpi-card,
-.theme-switching .status-strip,
-.theme-switching input,
-.theme-switching select,
-.theme-switching .search-field,
-.theme-switching .table-wrap {
-  transition:
-    background-color 120ms ease-out,
-    border-color 120ms ease-out,
-    color 100ms linear;
-}
-
-.theme-switching .recharts-pie-sector path,
-.theme-switching .donut-center-label,
-.theme-switching .recharts-cartesian-axis-tick text {
-  transition:
-    fill 120ms ease-out,
-    stroke 120ms ease-out;
-}
-
 @media (prefers-reduced-motion: reduce) {
-  ::view-transition-old(root),
-  ::view-transition-new(root),
-  .theme-switching *,
-  .theme-switching *::before,
-  .theme-switching *::after {
+  *,
+  *::before,
+  *::after {
     transition: none;
     animation-duration: 0.01ms;
   }
