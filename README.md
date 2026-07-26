@@ -1,147 +1,105 @@
-# 🎨 Overlook
+# Overlook
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Local--First-Yes-8da89e?style=flat-square" alt="Local First" />
-  <img src="https://img.shields.io/badge/Aesthetic-Morandi%20Fresh-8a9aae?style=flat-square" alt="Morandi Fresh" />
-  <img src="https://img.shields.io/badge/Platform-Bilibili%20%7C%20小红书%20%7C%20抖音-b8a27d?style=flat-square" alt="Platforms" />
-  <img src="https://img.shields.io/badge/PWA-Supported-a697bb?style=flat-square" alt="PWA" />
-</p>
+Overlook 是一款面向 Bilibili、小红书和抖音创作者的本地优先经营看板。它将内容表现、发布计划、竞品对标、账号管理和合作报告集中在一个可离线使用的工作区中。
 
-Overlook 是一款**本地优先、设计精美**的自媒体创作者一站式经营看板，专为同时运营 **Bilibili、小红书和抖音** 的个人创作者或小团队打造。
+[在线体验](https://bastet-normal.github.io/Overlook/)
 
-它将复杂的业务分析、选题规划、对标扫描和数据安全，凝练在一个安静、优雅的 **“莫兰迪清新 (Morandi Fresh)”** 视效工作台内。所有数据默认以离线形式存储在浏览器本地，无需复杂的后端部署，保障绝对隐私与高响应度，并可直接作为静态站点一键部署。
+## 核心能力
 
-✨ **在线体验：** [https://bastet-normal.github.io/Overlook/](https://bastet-normal.github.io/Overlook/)
+- 决策总览：展示关键指标、趋势、平台表现和下一轮实验建议。
+- 内容资产：支持录入、搜索、筛选、删除以及 CSV 导入导出。
+- 发布计划：管理月度目标、推荐发布时间和每周内容排期。
+- 竞品对标：记录对标账号、指标差距和历史快照。
+- 本地工作区：数据默认保存在浏览器，可完整备份、恢复和撤销。
+- 合作报告：导出 Creator Media Kit PDF，并可隐藏账号信息。
+- PWA：生产环境支持离线缓存和安装。
 
----
-
-## 📸 莫兰迪视觉美学 (Morandi Fresh)
-
-不同于常规高饱和度、刺眼的后台界面，Overlook 采用了经过精心设计的低饱和度莫兰迪色系（ desaturated pastel tones ），辅以高档的 `Plus Jakarta Sans` 无衬线字体：
-
-*   **视觉底色**：温润的米灰底色 `rgba(251, 250, 247, 0.92)` 配合细致毛玻璃效果 `backdrop-filter: blur(18px)`。
-*   **平台点缀色**：轻盈的莫兰迪灰蓝（Bilibili）、干枯玫瑰粉（小红书）与柔和莫兰迪绿（抖音），使多平台业务标识井然有序却又不显杂乱。
-*   **无级自适应**：全站严格限制在视口高度（`100dvh`），配合卡片级智能垂直滚动弹性布局，完美适配从 `1280x760` 到宽屏及移动视口的各种终端。
-
----
-
-## 🌟 核心功能模块
-
-### 📊 1. 业务总览 (Overview)
-- **多维 KPI 报表**：整合总播放、平均互动率、粉丝新增与商务线索转化度。
-- **动态表现趋势**：采用轻量定制 Recharts 折线图，平滑追踪过去 30 天的播放与互动涨跌。
-- **内容类型占比**：精细环形图（Donut Chart）直观反映不同内容的流量占比。
-- **下一轮实验建议**：基于平台规则与数据洞察，自动提供下一阶段可落地的选题改进方向。
-
-### 📚 2. 内容库管理 (Content Library)
-- **智能导入预览**：强大的 CSV 智能解析引擎，支持中英文表头自动模糊映射、重复记录拦截与无效行提示。
-- **内容检索器**：秒级的标题、系列、受众、标签全文检索，配合便捷的多平台下拉过滤。
-- **一键导出**：一键将本地修改后的数据重新打包为标准的 CSV 数据包。
-
-### 📅 3. 智能发布计划 (Publisher Planner)
-- **目标进度追踪**：月度播放、涨粉及合作线索进度条，实时显示流量缺口。
-- **黄金发布窗口**：分析各平台历史最佳发布时间段。
-- **本周排期生成**：一键生成本周发布计划表，支持完成状态标记与排期计划一键复制。
-- **跨平台重塑**：自动将优质内容重塑为适配其他平台特性的差异化选题方案。
-
-### ⚔️ 4. 竞品对标分析 (Competitor Benchmarks)
-- **自动化漏洞扫描**：输入对标账号句柄即可调用扫描机制（支持外接合规 API 校验，并内建本地多因子置信度估算回退逻辑）。
-- **指标差距扫描**：全方位比对竞品均播差、互动率差与内容角度。
-- **历史快照记录**：捕获竞品快照，并保留相对于上一次记录的粉丝、互动变动趋势。
-
-### 🔒 5. 账号状态与数据安全 (Accounts & Security)
-- **PWA 离线支持**：Service Worker 缓存检测、本地数据完整性校验。
-- **多维安全导出**：支持完整工作区 JSON 备份导出。
-- **恢复校验与撤销**：恢复工作区前提供结构差异比对预览，并支持最近一次导入/重置的**一键撤销（Undo）**。
-- **隐私模式**：面向品牌方展示或导出 Media Kit PDF 报告时，可一键隐藏敏感 handle 账号信息。
-
----
-
-## 📂 优雅的模块化架构
-
-经过彻底的重构，Overlook 的代码由原本的单文件精细拆分为职责单一的现代前端架构，完全遵循 TypeScript 严格 `verbatimModuleSyntax` 规范：
+## 项目结构
 
 ```text
-src/
-  ├── components/                 # 核心功能视图组件
-  │   ├── Navbar.tsx             # 顶部轻质导航栏
-  │   ├── OverviewView.tsx       # 总览分析视图（折线图、环形图）
-  │   ├── ContentView.tsx        # 内容库视图（表单、数据表格）
-  │   ├── PlannerView.tsx        # 计划视图（目标、最佳时间、周历）
-  │   ├── BenchmarksView.tsx     # 对标视图（对标扫描、差距比对）
-  │   ├── AccountsView.tsx       # 账号管理与系统安全配置视图
-  │   ├── ImportPreviewModal.tsx # CSV 导入校验差异对比 Modal
-  │   ├── RestorePreviewModal.tsx# 工作区数据备份恢复预览 Modal
-  │   └── ReportSheet.tsx        # 导出 Media Kit PDF 专用样式页
-  ├── domain/                     # 业务模型校验、版本升级与数据上限
-  │   └── workspaceSchema.ts     # 工作区 v4 严格校验及旧备份迁移
-  ├── features/workspace/         # 工作区导入、导出和恢复流程
-  │   └── useWorkspaceFiles.ts   # CSV/JSON/PDF 文件操作编排
-  ├── hooks/                      # 页面无关的状态与派生数据 hooks
-  │   ├── useWorkspaceState.ts   # 原子工作区存储及撤销机制
-  │   ├── useDashboardData.ts    # 指标、筛选、洞察与图表数据
-  │   ├── useCompetitorScan.ts   # 外接 API 与本地模拟参考值
-  │   └── useLocalStorage.ts     # 主题等设备偏好存储
-  ├── storage/                    # 浏览器存储适配与旧 key 迁移
-  ├── services/                   # PDF 等基础设施服务
-  ├── utils/                      # 纯算法与计算工具
-  │   ├── calendarHelpers.ts     # 最佳排期推荐算法与周历生成逻辑
-  │   ├── importHelpers.ts       # CSV 校验规则、字段对齐与解析器
-  │   └── dashboardHelpers.ts    # 数值格式化、单位转换与置信度算法
-  ├── types/                      # 数据模型定义
-  ├── App.tsx                     # 顶层视图协调器（视图按需分包）
-  ├── main.tsx                    # React 19 挂载入口
-  └── index.css                   # 面向 Morandi Fresh 主题的系统级 CSS 变量与弹性布局样式
+.
+├── .github/workflows/       # GitHub Pages 自动验证与发布
+├── .openai/                 # Sites 项目标识
+├── docs/                    # 产品研究和决策记录
+├── public/                  # PWA 图标、清单、Service Worker 和托管入口
+├── scripts/                 # 视觉与交互烟雾测试
+└── src/
+    ├── components/          # 页面视图和通用 UI 组件
+    ├── domain/              # 工作区校验、迁移和数据约束
+    ├── features/workspace/  # 导入、导出与恢复流程
+    ├── hooks/               # 状态编排和派生业务数据
+    ├── services/            # PDF 等基础设施服务
+    ├── storage/             # 本地持久化与旧版本迁移
+    ├── styles/              # 基础样式与视觉优化层
+    ├── types/               # TypeScript 数据模型
+    ├── utils/               # 纯计算、解析和排期算法
+    ├── App.tsx              # 应用协调层
+    └── main.tsx             # React 入口
 ```
 
----
+### 文件职责
 
-## 🛠️ 本地开发指南
+- `src/styles/base.css`：设计变量、基础组件和核心布局。
+- `src/styles/refinement.css`：主题质感、决策型总览、抽屉和响应式优化。
+- `src/domain/workspaceSchema.ts`：工作区 v4 校验、限制与旧数据迁移。
+- `src/storage/workspaceStorage.ts`：统一的本地存储文档。
+- `src/hooks/useWorkspaceState.ts`：工作区状态和原子更新。
+- `src/hooks/useDashboardData.ts`：图表、指标、洞察和筛选结果。
+- `src/features/workspace/useWorkspaceFiles.ts`：CSV、JSON 和 PDF 文件流程。
 
-### 1. 运行开发服务器
+## 本地开发
 
-运行以下命令安装依赖并启动 Vite：
+要求 Node.js 24。
 
 ```bash
-# 安装锁定版本的项目依赖
 npm ci
-
-# 首次运行视觉测试时安装 Chromium
 npx playwright install chromium
-
-# 启动本地开发服务
 npm run dev
 ```
 
-打开浏览器访问本地端口：`http://localhost:5173`。
+开发服务器默认运行在 `http://localhost:5173`。
 
-### 2. 多重质量校验 (Verify)
-
-项目配置了完整的自动化验证流程，运行以下命令：
+## 质量验证
 
 ```bash
 npm run verify
 ```
 
-该命令将严格依次执行：
-1. **ESLint 静态扫描** (`npm run lint`)
-2. **TypeScript 类型校验** (`npm run typecheck`)
-3. **Vitest 数据层测试** (`npm run test`)
-4. **Vite 生产包编译** (`npm run build`)
-5. **Playwright 视觉烟测** (`npm run visual:smoke`) - 会开启无头浏览器在 `1280x760` 和移动视口下测试所有模态框、页面防溢出与自适应边界。
+验证流程包括：
 
----
+1. ESLint 静态检查
+2. TypeScript 类型检查
+3. Vitest 数据层测试
+4. Vite 生产构建
+5. Playwright 桌面端、宽屏和移动端烟雾测试
+6. CSV 导入、工作区恢复、内容抽屉和 PDF 导出检查
 
-## 📦 部署发布
+也可以单独运行：
 
-项目已经配置了完备的 GitHub Actions 自动工作流 [deploy.yml](.github/workflows/deploy.yml)。
+```bash
+npm run lint
+npm run typecheck
+npm run test
+npm run build
+npm run visual:smoke
+```
 
-一旦代码被推送（Push）至 `main` 分支，GitHub Actions 将会自动执行 `npm run verify` 套件，在校验无误后通过 GitHub Pages artifact 流程发布 `dist` 产物。
+## 数据与隐私
 
-> Vite 编译基础路径已设定为相对路径 `base: './'`，可完美适配任何子目录或 GitHub Pages 项目页地址。
+- 工作区数据默认只存储在当前浏览器的 `localStorage`。
+- CSV 导入会先进行字段映射、重复检查和无效行预览。
+- JSON 恢复会执行版本迁移和逐字段校验。
+- 大规模变更前会记录一次可撤销快照。
+- 不需要账号密码，也不会自动上传创作数据。
 
----
+浏览器数据仍可能因清理站点数据或更换设备而丢失，请定期在“账号与数据”页面导出工作区备份。
 
-## 📜 许可协议
+## 发布
 
-本项目基于 **MIT License** 协议开源。
+推送到 `main` 分支后，[GitHub Actions](.github/workflows/deploy.yml) 会运行完整验证，并将 `dist` 发布到 GitHub Pages。
+
+项目同时保留 `.openai/hosting.json` 和 `public/server/index.js`，用于后续更新现有 Sites 生产环境。两种发布方式共用相同的 Vite 构建结果。
+
+## License
+
+MIT

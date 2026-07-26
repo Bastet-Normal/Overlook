@@ -1,19 +1,17 @@
 // Overlook PWA Service Worker
-// Simple cache-first / stale-while-revalidate for app shell (index, css, js, svg, sample csv)
-// Enables offline viewing of last data (localStorage + cached static shell + sample)
+// Cache-first / stale-while-revalidate for the app shell.
+// Enables offline viewing of local workspace data and the cached interface.
 // Works for GitHub Pages static deploy (relative paths + runtime caching for hashed assets)
 
 const CACHE_PREFIX = 'overlook-pwa-';
-const CACHE_NAME = `${CACHE_PREFIX}v3`;
+const CACHE_NAME = `${CACHE_PREFIX}v4`;
 const PRECACHE_ASSETS = [
   './',
   './index.html',
   './manifest.json',
   './favicon.svg',
   './icon-192.png',
-  './icon-512.png',
-  './sample-data.csv',
-  './icons.svg'
+  './icon-512.png'
 ];
 
 self.addEventListener('install', (event) => {
