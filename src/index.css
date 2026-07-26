@@ -629,6 +629,16 @@ button:focus-visible {
   padding: 16px 0 36px;
 }
 
+.view-loading {
+  min-height: 180px;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
 .workspace-header,
 .panel,
 .kpi-card {
@@ -2596,6 +2606,15 @@ select:focus {
 }
 
 @media (max-width: 720px) {
+  .tab-strip {
+    gap: 3px;
+  }
+
+  .tab-button {
+    flex: 1 1 auto;
+    padding-inline: 8px;
+  }
+
   .app-main {
     width: min(100% - 20px, 1280px);
     padding-top: 12px;

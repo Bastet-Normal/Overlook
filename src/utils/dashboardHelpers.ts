@@ -1,4 +1,4 @@
-import type { Competitor, CompetitorDraft, CompetitorSnapshot, ContentIntent, Platform, WorkspaceSnapshot } from '../types'
+import type { Competitor, CompetitorDraft, CompetitorSnapshot, ContentIntent, Platform } from '../types'
 import { PLATFORMS } from '../types'
 
 export const intentLabel: Record<ContentIntent, string> = {
@@ -23,7 +23,7 @@ export const accountStatusLabel: Record<'connected' | 'manual' | 'missing', stri
 }
 
 export const scanSourceLabel: Record<NonNullable<Competitor['scanSource']>, string> = {
-  'local-estimate': '本地估算',
+  'local-estimate': '模拟参考值',
   manual: '手动修正',
   sample: '示例数据',
   external: '外部数据',
@@ -92,10 +92,10 @@ export function sumBy<T>(items: T[], pick: (item: T) => number) {
 }
 
 export function toNumber(value: string | number | undefined) {
-  if (typeof value === 'number') return Number.isFinite(value) ? value : 0
+  if (typeof value === 'number') return Number.isFinite(value) ? Math.max(0, value) : 0
   const normalized = String(value ?? '').replace(/[,%，\s]/g, '')
   const parsed = Number(normalized)
-  return Number.isFinite(parsed) ? parsed : 0
+  return Number.isFinite(parsed) ? Math.max(0, parsed) : 0
 }
 
 export function makeId(prefix: string) {
@@ -142,12 +142,6 @@ export function estimateCompetitorFromHandle(platform: Platform, rawName: string
 
 export function clampConfidence(value: number) {
   return Math.min(100, Math.max(1, Math.round(value)))
-}
-
-export function isWorkspaceSnapshot(value: unknown): value is WorkspaceSnapshot {
-  if (!value || typeof value !== 'object') return false
-  const snapshot = value as Partial<WorkspaceSnapshot>
-  return Array.isArray(snapshot.content) && Array.isArray(snapshot.accounts) && Boolean(snapshot.goal) && Array.isArray(snapshot.competitors)
 }
 
 export function downloadBlob(content: BlobPart, type: string, filename: string) {

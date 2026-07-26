@@ -3,7 +3,8 @@
 // Enables offline viewing of last data (localStorage + cached static shell + sample)
 // Works for GitHub Pages static deploy (relative paths + runtime caching for hashed assets)
 
-const CACHE_NAME = 'overlook-pwa-v2';
+const CACHE_PREFIX = 'overlook-pwa-';
+const CACHE_NAME = `${CACHE_PREFIX}v3`;
 const PRECACHE_ASSETS = [
   './',
   './index.html',
@@ -16,13 +17,9 @@ const PRECACHE_ASSETS = [
 ];
 
 self.addEventListener('install', (event) => {
-  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(PRECACHE_ASSETS).catch((err) => {
-        // Non-fatal in some envs (dev server etc)
-        console.warn('[SW] Precaching skipped some assets:', err);
-      });
+      return cache.addAll(PRECACHE_ASSETS);
     })
   );
 });
@@ -32,7 +29,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames
-          .filter((name) => name !== CACHE_NAME)
+          .filter((name) => name.startsWith(CACHE_PREFIX) && name !== CACHE_NAME)
           .map((name) => caches.delete(name))
       );
     }).then(() => {
@@ -73,7 +70,7 @@ self.addEventListener('fetch', (event) => {
       fetch(request)
         .then((response) => {
           // Optionally cache opaque or basic responses
-          if (response && response.status === 200 && (response.type === 'basic' || response.type === 'opaque')) {
+          if (response && (response.status === 200 || response.type === 'opaque')) {
             const clone = response.clone();
             caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
           }

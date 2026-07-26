@@ -73,16 +73,23 @@ src/
   │   ├── ImportPreviewModal.tsx # CSV 导入校验差异对比 Modal
   │   ├── RestorePreviewModal.tsx# 工作区数据备份恢复预览 Modal
   │   └── ReportSheet.tsx        # 导出 Media Kit PDF 专用样式页
-  ├── hooks/                      # 自定义状态与持久化 hooks
-  │   ├── useWorkspaceState.ts   # 集中管理本地工作区状态及撤销机制
-  │   ├── useCompetitorScan.ts   # 封装账号扫描、外接 API 与本地估算逻辑
-  │   └── useLocalStorage.ts     # 增强型本地存储 hook（内置配额异常拦截）
+  ├── domain/                     # 业务模型校验、版本升级与数据上限
+  │   └── workspaceSchema.ts     # 工作区 v4 严格校验及旧备份迁移
+  ├── features/workspace/         # 工作区导入、导出和恢复流程
+  │   └── useWorkspaceFiles.ts   # CSV/JSON/PDF 文件操作编排
+  ├── hooks/                      # 页面无关的状态与派生数据 hooks
+  │   ├── useWorkspaceState.ts   # 原子工作区存储及撤销机制
+  │   ├── useDashboardData.ts    # 指标、筛选、洞察与图表数据
+  │   ├── useCompetitorScan.ts   # 外接 API 与本地模拟参考值
+  │   └── useLocalStorage.ts     # 主题等设备偏好存储
+  ├── storage/                    # 浏览器存储适配与旧 key 迁移
+  ├── services/                   # PDF 等基础设施服务
   ├── utils/                      # 纯算法与计算工具
   │   ├── calendarHelpers.ts     # 最佳排期推荐算法与周历生成逻辑
   │   ├── importHelpers.ts       # CSV 校验规则、字段对齐与解析器
   │   └── dashboardHelpers.ts    # 数值格式化、单位转换与置信度算法
   ├── types/                      # 数据模型定义
-  ├── App.tsx                     # 顶层流程路由与状态分配调度控制器
+  ├── App.tsx                     # 顶层视图协调器（视图按需分包）
   ├── main.tsx                    # React 19 挂载入口
   └── index.css                   # 面向 Morandi Fresh 主题的系统级 CSS 变量与弹性布局样式
 ```
@@ -96,8 +103,11 @@ src/
 运行以下命令安装依赖并启动 Vite：
 
 ```bash
-# 安装项目依赖
-npm install
+# 安装锁定版本的项目依赖
+npm ci
+
+# 首次运行视觉测试时安装 Chromium
+npx playwright install chromium
 
 # 启动本地开发服务
 npm run dev
@@ -116,8 +126,9 @@ npm run verify
 该命令将严格依次执行：
 1. **ESLint 静态扫描** (`npm run lint`)
 2. **TypeScript 类型校验** (`npm run typecheck`)
-3. **Vite 生产包编译** (`npm run build`)
-4. **Playwright 视觉烟测** (`npm run visual:smoke`) - 会开启无头浏览器在 `1280x760` 和移动视口下测试所有模态框、页面防溢出与自适应边界。
+3. **Vitest 数据层测试** (`npm run test`)
+4. **Vite 生产包编译** (`npm run build`)
+5. **Playwright 视觉烟测** (`npm run visual:smoke`) - 会开启无头浏览器在 `1280x760` 和移动视口下测试所有模态框、页面防溢出与自适应边界。
 
 ---
 

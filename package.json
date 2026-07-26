@@ -10,9 +10,10 @@
     "build": "vite build",
     "typecheck": "tsc -b --noEmit",
     "lint": "eslint .",
+    "test": "vitest run",
     "preview": "vite preview",
     "visual:smoke": "node scripts/visual-smoke.mjs",
-    "verify": "npm run lint && npm run typecheck && npm run build && npm run visual:smoke",
+    "verify": "npm run lint && npm run typecheck && npm run test && npm run build && npm run visual:smoke",
     "deploy": "gh-pages -d dist"
   },
   "homepage": "https://bastet-normal.github.io/Overlook",
@@ -23,8 +24,8 @@
     "papaparse": "^5.4.1",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
-    "recharts": "^2.12.0",
-    "sonner": "^1.5.0"
+    "recharts": "^3.10.0",
+    "sonner": "^2.0.7"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -43,6 +44,7 @@
     "tailwindcss": "^4.0.0",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.59.2",
-    "vite": "^8.0.12"
+    "vite": "^8.0.12",
+    "vitest": "^4.1.10"
   }
 }

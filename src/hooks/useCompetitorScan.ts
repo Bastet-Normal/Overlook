@@ -4,7 +4,7 @@ import { estimateCompetitorFromHandle } from '../utils/dashboardHelpers'
 import { fetchExternalCompetitorScan } from '../utils/importHelpers'
 
 const EXTERNAL_SCAN_ENDPOINT = String(import.meta.env.VITE_OVERLOOK_SCAN_ENDPOINT ?? '').trim()
-const SCAN_PENDING_MESSAGE = EXTERNAL_SCAN_ENDPOINT ? '正在扫描外部数据源' : '正在生成本地估算'
+const SCAN_PENDING_MESSAGE = EXTERNAL_SCAN_ENDPOINT ? '正在扫描外部数据源' : '正在生成模拟参考值'
 
 export const emptyCompetitorDraft: CompetitorDraft = {
   platform: 'Xiaohongshu',
@@ -39,7 +39,7 @@ export function useCompetitorScan() {
     const timer = window.setTimeout(async () => {
       if (scanRequestRef.current !== requestId) return
       let scannedDraft = estimateCompetitorFromHandle(platform, name)
-      let scanMessage = `本地估算 · 可信度 ${scannedDraft.scanConfidence}%`
+      let scanMessage = '模拟参考值 · 非真实账号数据'
 
       if (EXTERNAL_SCAN_ENDPOINT) {
         controller = new AbortController()

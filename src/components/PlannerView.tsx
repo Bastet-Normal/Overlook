@@ -81,7 +81,7 @@ export function PlannerView({
               />
             </label>
             <label>
-              商务线索
+              商务线索目标
               <input
                 type="number"
                 min="1"
@@ -98,7 +98,11 @@ export function PlannerView({
         </article>
 
         <article className="panel">
-          <SectionTitle icon={<Clock size={18} />} title="优先发布窗口" action="按历史表现" />
+          <SectionTitle
+            icon={<Clock size={18} />}
+            title="优先发布窗口"
+            action={bestSlots.some((slot) => slot.source === 'historical') ? '历史 + 建议' : '建议时段'}
+          />
           <div className="slot-grid">
             {PLATFORMS.map((platform) => (
               <div className="slot-card" key={platform}>
@@ -108,8 +112,12 @@ export function PlannerView({
                   {bestSlots
                     .filter((slot) => slot.platform === platform)
                     .map((slot) => (
-                      <span key={`${platform}-${slot.hour}`} className="time-pill">
-                        {slot.label}
+                      <span
+                        key={`${platform}-${slot.hour}`}
+                        className="time-pill"
+                        title={slot.source === 'historical' ? '根据历史内容表现' : '缺少样本时的建议时段'}
+                      >
+                        {slot.label}{slot.source === 'historical' ? ' · 历史' : ''}
                       </span>
                     ))}
                 </div>
@@ -130,7 +138,11 @@ export function PlannerView({
             <Copy size={16} />
             复制
           </button>
-          <select value={calendarPlatformFilter} onChange={(event) => setCalendarPlatformFilter(event.target.value as 'all' | Platform)}>
+          <select
+            value={calendarPlatformFilter}
+            onChange={(event) => setCalendarPlatformFilter(event.target.value as 'all' | Platform)}
+            aria-label="按平台筛选排期"
+          >
             <option value="all">全部平台</option>
             {PLATFORMS.map((platform) => (
               <option key={platform}>{platform}</option>
@@ -147,7 +159,11 @@ export function PlannerView({
               <article className={`calendar-card calendar-card--${item.status}`} key={item.id}>
                 <div className="calendar-card__top">
                   <span>{item.day}</span>
-                  <button className="status-pill" onClick={() => onToggleCalendarStatus(item.id)}>
+                  <button
+                    className="status-pill"
+                    onClick={() => onToggleCalendarStatus(item.id)}
+                    aria-label={`${item.title}：${statusLabel[item.status]}，点击切换状态`}
+                  >
                     {statusLabel[item.status]}
                   </button>
                 </div>

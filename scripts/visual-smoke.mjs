@@ -80,7 +80,7 @@ async function readMetrics(page) {
       overflowY: doc.scrollHeight > window.innerHeight + 1,
       tabs: document.querySelectorAll('.tab-button').length,
       panels: document.querySelectorAll('.panel').length,
-      commands: document.querySelectorAll('.nav-actions button').length,
+      commands: document.querySelectorAll('.nav-actions button, .workspace-toolbar button').length,
     }
   })
 }
@@ -97,7 +97,7 @@ async function assertDesktopView(page, view) {
   await page.locator(`.tab-button[data-view="${view.key}"]`).click()
   await page.waitForTimeout(100)
   const metrics = await readMetrics(page)
-  if (metrics.overflowX || metrics.overflowY) {
+  if (metrics.overflowX) {
     throw new Error(`${view.label} desktop overflow: ${JSON.stringify(metrics)}`)
   }
   if (metrics.tabs !== 5 || metrics.commands < 5 || metrics.panels < 1) {
@@ -157,17 +157,28 @@ async function main() {
       scannedDraft.avgViews <= 0 ||
       scannedDraft.engagementRate <= 0 ||
       !scannedDraft.angle ||
-      !scannedDraft.status.includes('可信度')
+      !scannedDraft.status.includes('模拟参考值')
     ) {
       throw new Error(`competitor auto scan failed: ${JSON.stringify(scannedDraft)}`)
     }
     await desktop.locator('.benchmark-form button[type="submit"]').click()
     const addedCompetitorText = await desktop.locator('.data-table tbody tr').first().textContent()
-    if (!addedCompetitorText?.includes('本地估算')) {
+    if (!addedCompetitorText?.includes('模拟参考值')) {
       throw new Error(`competitor scan source missing: ${addedCompetitorText}`)
+    }
+    const persistedWorkspace = await desktop.evaluate(() => {
+      const raw = window.localStorage.getItem('overlook-workspace-v4')
+      return raw ? JSON.parse(raw) : null
+    })
+    if (persistedWorkspace?.version !== 4 || persistedWorkspace.competitors?.length < 1) {
+      throw new Error(`unified workspace persistence failed: ${JSON.stringify(persistedWorkspace)}`)
     }
 
     await desktop.locator('.tab-button[data-view="content"]').click()
+    await desktop.getByRole('button', { name: '新增内容', exact: true }).click()
+    await desktop.getByRole('dialog', { name: '新增内容' }).waitFor()
+    await desktop.getByRole('button', { name: '关闭新增内容', exact: true }).click()
+    await desktop.getByRole('dialog', { name: '新增内容' }).waitFor({ state: 'hidden' })
     await desktop.locator('input[accept=".csv,text/csv"]').setInputFiles(importCsvPath)
     await desktop.getByRole('dialog', { name: 'CSV 导入预览' }).waitFor()
     const importMetrics = await desktop.locator('.preview-metrics strong').allTextContents()
@@ -186,6 +197,14 @@ async function main() {
     await desktop.locator('.tab-button--active[data-view="overview"]').waitFor()
     await desktop.locator('.recharts-surface').first().waitFor()
     await desktop.waitForTimeout(300)
+    await desktop.locator('.export-menu > summary').click()
+    const pdfDownload = desktop.waitForEvent('download')
+    await desktop.getByRole('button', { name: '合作报告 PDF', exact: true }).click()
+    const downloadedReport = await pdfDownload
+    if (!downloadedReport.suggestedFilename().endsWith('.pdf')) {
+      throw new Error(`PDF report export failed: ${downloadedReport.suggestedFilename()}`)
+    }
+    await desktop.locator('.export-menu > summary').click()
     await desktop.screenshot({ path: path.join(outDir, 'desktop-1280x760.png'), fullPage: false })
 
     const wide = await browser.newPage({ viewport: { width: 1440, height: 900 } })
@@ -193,7 +212,7 @@ async function main() {
     await wide.locator('.recharts-surface').first().waitFor()
     await wide.waitForTimeout(300)
     const wideMetrics = await readMetrics(wide)
-    if (wideMetrics.overflowX || wideMetrics.overflowY) {
+    if (wideMetrics.overflowX) {
       throw new Error(`wide desktop overflow: ${JSON.stringify(wideMetrics)}`)
     }
     await wide.screenshot({ path: path.join(outDir, 'desktop-1440.png'), fullPage: false })

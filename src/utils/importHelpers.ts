@@ -142,16 +142,35 @@ export function contentKey(item: Pick<ContentItem, 'platform' | 'title' | 'publi
 export function normalizeContentItem(item: ContentItem): ContentItem {
   return {
     ...item,
+    title: String(item.title ?? '').trim().slice(0, 300),
+    type: String(item.type ?? '').trim().slice(0, 80),
+    hour: Math.min(23, Math.max(0, Math.round(toNumber(item.hour)))),
+    views: toNumber(item.views),
+    likes: toNumber(item.likes),
+    comments: toNumber(item.comments),
+    shares: toNumber(item.shares),
+    saves: toNumber(item.saves),
+    followersGained: toNumber(item.followersGained),
+    pillar: String(item.pillar ?? '').trim().slice(0, 120),
+    campaign: String(item.campaign ?? '').trim().slice(0, 120),
     tags: Array.isArray(item.tags)
       ? item.tags
           .map((tag) => String(tag).trim())
           .filter(Boolean)
+          .map((tag) => tag.slice(0, 60))
           .slice(0, 8)
       : splitTags(item.pillar || item.campaign || ''),
-    audience: item.audience || '个人创作者',
-    hook: item.hook || item.title,
+    audience: String(item.audience || '个人创作者').trim().slice(0, 160),
+    hook: String(item.hook || item.title).trim().slice(0, 500),
     intent: normalizeIntent(item.intent ?? 'growth'),
   }
+}
+
+export function isValidCalendarDate(value: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
+  const [year, month, day] = value.split('-').map(Number)
+  const parsed = new Date(Date.UTC(year, month - 1, day))
+  return parsed.getUTCFullYear() === year && parsed.getUTCMonth() === month - 1 && parsed.getUTCDate() === day
 }
 
 export function parseImportedRow(row: Record<string, string>, index: number, existingKeys: Set<string>, mappings: ImportColumnMapping[]): ParsedImportRow {
@@ -162,7 +181,7 @@ export function parseImportedRow(row: Record<string, string>, index: number, exi
 
   if (!platform) issues.push('平台无法识别')
   if (!title) issues.push('缺少标题')
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(publishedAt)) issues.push('日期格式应为 YYYY-MM-DD')
+  if (!isValidCalendarDate(publishedAt)) issues.push('日期不是有效的 YYYY-MM-DD 日期')
 
   if (!platform || !title || issues.length > 0) {
     return { rowNumber: index + 2, item: null, issues, duplicate: false }
@@ -171,8 +190,8 @@ export function parseImportedRow(row: Record<string, string>, index: number, exi
   const item: ContentItem = {
     id: makeId(`import-${index}`),
     platform,
-    title,
-    type: readMappedCell(row, mappings, 'type', platform === 'Xiaohongshu' ? '图文笔记' : '短视频'),
+    title: title.slice(0, 300),
+    type: readMappedCell(row, mappings, 'type', platform === 'Xiaohongshu' ? '图文笔记' : '短视频').slice(0, 80),
     publishedAt,
     hour: Math.min(23, Math.max(0, Math.round(toNumber(readMappedCell(row, mappings, 'hour', '20'))))),
     views: toNumber(readMappedCell(row, mappings, 'views')),
@@ -181,11 +200,11 @@ export function parseImportedRow(row: Record<string, string>, index: number, exi
     shares: toNumber(readMappedCell(row, mappings, 'shares')),
     saves: toNumber(readMappedCell(row, mappings, 'saves')),
     followersGained: toNumber(readMappedCell(row, mappings, 'followersGained')),
-    pillar: readMappedCell(row, mappings, 'pillar', '未分类'),
-    campaign: readMappedCell(row, mappings, 'campaign', '导入数据'),
+    pillar: readMappedCell(row, mappings, 'pillar', '未分类').slice(0, 120),
+    campaign: readMappedCell(row, mappings, 'campaign', '导入数据').slice(0, 120),
     tags: splitTags(readMappedCell(row, mappings, 'tags', '')),
-    audience: readMappedCell(row, mappings, 'audience', '个人创作者'),
-    hook: readMappedCell(row, mappings, 'hook', title),
+    audience: readMappedCell(row, mappings, 'audience', '个人创作者').slice(0, 160),
+    hook: readMappedCell(row, mappings, 'hook', title).slice(0, 500),
     intent: normalizeIntent(readMappedCell(row, mappings, 'intent', 'growth')),
   }
 
@@ -209,7 +228,10 @@ export function parseExternalScanResponse(platform: Platform, fallbackName: stri
     angle,
     scanSource: 'external',
     scanConfidence: clampConfidence(toNumber(data.confidence ?? data.scanConfidence ?? data.scan_confidence ?? 90)),
-    scannedAt: data.scannedAt || data.scanned_at || new Date().toISOString(),
+    scannedAt:
+      Number.isFinite(Date.parse(String(data.scannedAt ?? data.scanned_at ?? '')))
+        ? String(data.scannedAt ?? data.scanned_at)
+        : new Date().toISOString(),
   }
 }
 

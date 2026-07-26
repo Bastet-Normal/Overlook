@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import { Plus, Search, Download, Trash2 } from 'lucide-react'
+import { Plus, Search, Download, Trash2, X } from 'lucide-react'
 import type { ContentIntent, ContentItem, Platform } from '../types'
 import { PLATFORMS } from '../types'
 import { formatNumber, intentLabel, intentOptions, toNumber } from '../utils/dashboardHelpers'
@@ -50,6 +50,16 @@ export function ContentView({
   onExportCsv,
 }: ContentViewProps) {
   const [draft, setDraft] = useState<Omit<ContentItem, 'id'>>(emptyDraft)
+  const [isComposerOpen, setIsComposerOpen] = useState(false)
+
+  useEffect(() => {
+    if (!isComposerOpen) return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsComposerOpen(false)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [isComposerOpen])
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -63,13 +73,26 @@ export function ContentView({
       type: draft.type,
       hour: draft.hour,
     })
+    setIsComposerOpen(false)
   }
 
   return (
     <div className="view-stack view-stack--content">
-      <section className="panel">
-        <SectionTitle icon={<Plus size={18} />} title="新增内容" action="本地保存" />
-        <form className="content-form" onSubmit={handleSubmit}>
+      {isComposerOpen && (
+        <>
+          <button className="composer-backdrop" onClick={() => setIsComposerOpen(false)} aria-label="关闭新增内容面板" />
+          <section className="composer-drawer" role="dialog" aria-modal="true" aria-labelledby="composer-title">
+            <header className="composer-drawer__header">
+              <div>
+                <span>内容资产</span>
+                <h2 id="composer-title">新增内容</h2>
+                <p>先录入核心表现，需要时再补充内容标签。</p>
+              </div>
+              <button className="icon-button" onClick={() => setIsComposerOpen(false)} aria-label="关闭新增内容">
+                <X size={18} />
+              </button>
+            </header>
+            <form className="content-form content-form--drawer" onSubmit={handleSubmit}>
           <label>
             平台
             <select value={draft.platform} onChange={(event) => setDraft({ ...draft, platform: event.target.value as Platform })}>
@@ -145,21 +168,43 @@ export function ContentView({
               ))}
             </select>
           </label>
-          <button className="action-button" type="submit">
-            <Plus size={16} />
-            添加
-          </button>
-        </form>
-      </section>
+              <div className="composer-drawer__actions">
+                <button className="action-button action-button--ghost" type="button" onClick={() => setIsComposerOpen(false)}>
+                  取消
+                </button>
+                <button className="action-button" type="submit">
+                  <Plus size={16} />
+                  保存内容
+                </button>
+              </div>
+            </form>
+          </section>
+        </>
+      )}
 
-      <section className="panel">
-        <SectionTitle icon={<Search size={18} />} title="内容库" action={`${filteredContent.length} 条`} />
+      <section className="panel content-library">
+        <div className="content-library__heading">
+          <SectionTitle icon={<Search size={18} />} title="内容资产" action={`${filteredContent.length} 条`} />
+          <button className="action-button" onClick={() => setIsComposerOpen(true)}>
+            <Plus size={16} />
+            新增内容
+          </button>
+        </div>
         <div className="table-toolbar">
           <div className="search-field">
             <Search size={16} />
-            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索标题、标签、受众、系列" />
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="搜索标题、标签、受众、系列"
+              aria-label="搜索内容库"
+            />
           </div>
-          <select value={platformFilter} onChange={(event) => setPlatformFilter(event.target.value as 'all' | Platform)}>
+          <select
+            value={platformFilter}
+            onChange={(event) => setPlatformFilter(event.target.value as 'all' | Platform)}
+            aria-label="按平台筛选内容"
+          >
             <option value="all">全部平台</option>
             {PLATFORMS.map((platform) => (
               <option key={platform}>{platform}</option>
@@ -187,7 +232,7 @@ export function ContentView({
               {filteredContent.length === 0 ? (
                 <tr>
                   <td colSpan={7} style={{ textAlign: 'center', color: 'var(--muted)', padding: '28px' }}>
-                    暂无内容记录。可在上方填写添加，或点击导航栏“导入 CSV”。
+                    暂无内容记录。点击“新增内容”录入，或使用页面顶部的“导入”。
                   </td>
                 </tr>
               ) : (

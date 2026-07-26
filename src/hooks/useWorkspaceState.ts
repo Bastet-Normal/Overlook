@@ -1,10 +1,19 @@
-import { useState } from 'react'
-import { useLocalStorage } from './useLocalStorage'
-import type { Account, CalendarItem, Competitor, CompetitorSnapshot, ContentItem, Goal, WorkspaceSnapshot } from '../types'
-import { seedAccounts, seedCalendar, seedCompetitorSnapshots, seedCompetitors, seedContent, seedGoal } from '../utils/mockData'
+import { useCallback, useRef, useState } from 'react'
+import type { Dispatch, SetStateAction } from 'react'
+import { toast } from 'sonner'
+
+import type {
+  CalendarItem,
+  Competitor,
+  CompetitorSnapshot,
+  ContentItem,
+  WorkspaceSnapshot,
+} from '../types'
+import { WORKSPACE_VERSION } from '../domain/workspaceSchema'
+import { createSeedWorkspace, loadWorkspace, persistWorkspace } from '../storage/workspaceStorage'
 import { makeId } from '../utils/dashboardHelpers'
 import { normalizeContentItem } from '../utils/importHelpers'
-import { toast } from 'sonner'
+import { useLocalStorage } from './useLocalStorage'
 
 export type WorkspaceUndo = {
   label: string
@@ -12,63 +21,106 @@ export type WorkspaceUndo = {
   snapshot: WorkspaceSnapshot
 }
 
-const WORKSPACE_VERSION = 3
+type WorkspaceSlice = 'content' | 'accounts' | 'goal' | 'competitors' | 'competitorSnapshots' | 'calendar'
 
-export function useWorkspaceState() {
-  const [content, setContent] = useLocalStorage<ContentItem[]>('overlook-content-v2', seedContent)
-  const [accounts, setAccounts] = useLocalStorage<Account[]>('overlook-accounts-v2', seedAccounts)
-  const [goal, setGoal] = useLocalStorage<Goal>('overlook-goal-v2', seedGoal)
-  const [competitors, setCompetitors] = useLocalStorage<Competitor[]>('overlook-competitors-v2', seedCompetitors)
-  const [competitorSnapshots, setCompetitorSnapshots] = useLocalStorage<CompetitorSnapshot[]>('overlook-competitor-snapshots-v1', seedCompetitorSnapshots)
-  const [calendar, setCalendar] = useLocalStorage<CalendarItem[]>('overlook-calendar-v2', seedCalendar)
-  const [hideSensitiveInReport, setHideSensitiveInReport] = useLocalStorage<boolean>('overlook-hide-sensitive-report-v1', false)
-  const [lastWorkspaceUndo, setLastWorkspaceUndo] = useState<WorkspaceUndo | null>(null)
-
-  const createWorkspaceSnapshot = (): WorkspaceSnapshot => ({
+function withTimestamp(snapshot: WorkspaceSnapshot): WorkspaceSnapshot {
+  return {
+    ...snapshot,
     version: WORKSPACE_VERSION,
     exportedAt: new Date().toISOString(),
-    content: content.map(normalizeContentItem),
-    accounts,
-    goal,
-    competitors,
-    competitorSnapshots,
-    calendar,
-  })
-
-  const applyWorkspaceSnapshot = (snapshot: WorkspaceSnapshot) => {
-    setContent(snapshot.content.map(normalizeContentItem))
-    setAccounts(snapshot.accounts)
-    setGoal(snapshot.goal)
-    setCompetitors(snapshot.competitors)
-    setCompetitorSnapshots(Array.isArray(snapshot.competitorSnapshots) ? snapshot.competitorSnapshots : [])
-    setCalendar(Array.isArray(snapshot.calendar) ? snapshot.calendar : [])
   }
+}
 
-  const captureWorkspaceUndo = (label: string) => {
-    setLastWorkspaceUndo({ label, capturedAt: new Date().toISOString(), snapshot: createWorkspaceSnapshot() })
-  }
+export function useWorkspaceState() {
+  const [workspace, setWorkspace] = useState<WorkspaceSnapshot>(loadWorkspace)
+  const workspaceRef = useRef(workspace)
+  const [hideSensitiveInReport, setHideSensitiveInReport] = useLocalStorage<boolean>(
+    'overlook-hide-sensitive-report-v1',
+    false,
+  )
+  const [lastWorkspaceUndo, setLastWorkspaceUndo] = useState<WorkspaceUndo | null>(null)
 
-  const restoreLastWorkspaceUndo = () => {
+  const commitWorkspace = useCallback((next: WorkspaceSnapshot | ((current: WorkspaceSnapshot) => WorkspaceSnapshot)) => {
+    const current = workspaceRef.current
+    const candidate = withTimestamp(typeof next === 'function' ? next(current) : next)
+    try {
+      persistWorkspace(candidate)
+      workspaceRef.current = candidate
+      setWorkspace(candidate)
+      return true
+    } catch {
+      toast.error('本地存储空间不足，修改未保存')
+      return false
+    }
+  }, [])
+
+  const updateSlice = <K extends WorkspaceSlice>(key: K, next: SetStateAction<WorkspaceSnapshot[K]>) =>
+    commitWorkspace((current) => ({
+      ...current,
+      [key]: typeof next === 'function' ? next(current[key]) : next,
+    }))
+
+  const createSliceSetter =
+    <K extends WorkspaceSlice>(key: K): Dispatch<SetStateAction<WorkspaceSnapshot[K]>> =>
+    (next) => {
+      updateSlice(key, next)
+    }
+
+  const setContent = createSliceSetter('content')
+  const setAccounts = createSliceSetter('accounts')
+  const setGoal = createSliceSetter('goal')
+  const setCompetitors = createSliceSetter('competitors')
+  const setCompetitorSnapshots = createSliceSetter('competitorSnapshots')
+  const setCalendar = createSliceSetter('calendar')
+  const updateContent = (next: SetStateAction<ContentItem[]>) => updateSlice('content', next)
+  const updateCalendar = (next: SetStateAction<CalendarItem[]>) => updateSlice('calendar', next)
+
+  const createWorkspaceSnapshot = useCallback(
+    (): WorkspaceSnapshot => ({
+      ...workspaceRef.current,
+      version: WORKSPACE_VERSION,
+      exportedAt: new Date().toISOString(),
+      content: workspaceRef.current.content.map(normalizeContentItem),
+    }),
+    [],
+  )
+
+  const applyWorkspaceSnapshot = useCallback(
+    (snapshot: WorkspaceSnapshot) =>
+      commitWorkspace({
+        ...snapshot,
+        content: snapshot.content.map(normalizeContentItem),
+      }),
+    [commitWorkspace],
+  )
+
+  const captureWorkspaceUndo = useCallback(
+    (label: string) => {
+      setLastWorkspaceUndo({
+        label,
+        capturedAt: new Date().toISOString(),
+        snapshot: createWorkspaceSnapshot(),
+      })
+    },
+    [createWorkspaceSnapshot],
+  )
+
+  const restoreLastWorkspaceUndo = useCallback(() => {
     if (!lastWorkspaceUndo) return
     const currentSnapshot = createWorkspaceSnapshot()
-    applyWorkspaceSnapshot(lastWorkspaceUndo.snapshot)
-    setLastWorkspaceUndo({ label: '撤销前状态', capturedAt: new Date().toISOString(), snapshot: currentSnapshot })
-    toast.success('已恢复到上一个工作区状态')
-  }
+    if (applyWorkspaceSnapshot(lastWorkspaceUndo.snapshot)) {
+      setLastWorkspaceUndo({
+        label: '撤销前状态',
+        capturedAt: new Date().toISOString(),
+        snapshot: currentSnapshot,
+      })
+      toast.success('已恢复到上一个工作区状态')
+    }
+  }, [applyWorkspaceSnapshot, createWorkspaceSnapshot, lastWorkspaceUndo])
 
   const resetWorkspace = () => {
     captureWorkspaceUndo('恢复示例前状态')
-    applyWorkspaceSnapshot({
-      version: WORKSPACE_VERSION,
-      exportedAt: new Date().toISOString(),
-      content: seedContent,
-      accounts: seedAccounts,
-      goal: seedGoal,
-      competitors: seedCompetitors,
-      competitorSnapshots: seedCompetitorSnapshots,
-      calendar: seedCalendar,
-    })
-    toast.success('示例工作区已恢复')
+    if (applyWorkspaceSnapshot(createSeedWorkspace())) toast.success('示例工作区已恢复，可在“账号”页撤销')
   }
 
   const addContent = (item: Omit<ContentItem, 'id'>) => {
@@ -78,13 +130,14 @@ export function useWorkspaceState() {
       title: item.title.trim(),
       hook: item.hook.trim() || item.title.trim(),
     } as ContentItem)
-    setContent((current) => [normalized, ...current])
-    toast.success('内容已加入看板')
+    if (updateContent((current) => [normalized, ...current])) toast.success('内容已加入看板')
   }
 
   const removeContent = (id: string) => {
-    setContent((current) => current.filter((item) => item.id !== id))
-    toast.success('内容已删除')
+    captureWorkspaceUndo('删除内容前状态')
+    if (updateContent((current) => current.filter((item) => item.id !== id))) {
+      toast.success('内容已删除，可在“账号”页撤销')
+    }
   }
 
   const addCompetitor = (competitor: Competitor) => {
@@ -93,8 +146,13 @@ export function useWorkspaceState() {
   }
 
   const removeCompetitor = (id: string) => {
-    setCompetitors((current) => current.filter((item) => item.id !== id))
-    toast.success('对标账号已删除')
+    captureWorkspaceUndo('删除竞品前状态')
+    const saved = commitWorkspace((current) => ({
+      ...current,
+      competitors: current.competitors.filter((item) => item.id !== id),
+      competitorSnapshots: current.competitorSnapshots.filter((snapshot) => snapshot.competitorId !== id),
+    }))
+    if (saved) toast.success('对标账号及其快照已删除，可在“账号”页撤销')
   }
 
   const toggleCalendarStatus = (id: string) => {
@@ -108,9 +166,13 @@ export function useWorkspaceState() {
   }
 
   const captureCompetitorSnapshotsAction = () => {
+    if (workspaceRef.current.competitors.length === 0) {
+      toast.error('请先添加至少一个对标账号')
+      return
+    }
     const capturedAt = new Date().toISOString()
     const today = capturedAt.slice(0, 10)
-    const snapshots = competitors.map((competitor) => ({
+    const snapshots: CompetitorSnapshot[] = workspaceRef.current.competitors.map((competitor) => ({
       id: makeId('snapshot'),
       competitorId: competitor.id,
       date: today,
@@ -124,18 +186,20 @@ export function useWorkspaceState() {
   }
 
   return {
-    content,
+    content: workspace.content,
     setContent,
-    accounts,
+    updateContent,
+    accounts: workspace.accounts,
     setAccounts,
-    goal,
+    goal: workspace.goal,
     setGoal,
-    competitors,
+    competitors: workspace.competitors,
     setCompetitors,
-    competitorSnapshots,
+    competitorSnapshots: workspace.competitorSnapshots,
     setCompetitorSnapshots,
-    calendar,
+    calendar: workspace.calendar,
     setCalendar,
+    updateCalendar,
     hideSensitiveInReport,
     setHideSensitiveInReport,
     lastWorkspaceUndo,

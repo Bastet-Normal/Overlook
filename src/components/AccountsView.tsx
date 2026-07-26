@@ -1,4 +1,4 @@
-import { ShieldCheck, Smartphone, FileText, Download, Database, Undo2, CheckCircle2, AlertTriangle } from 'lucide-react'
+import { ShieldCheck, Smartphone, FileText, Download, Database, Undo2, CheckCircle2, AlertTriangle, RefreshCw } from 'lucide-react'
 import type { Account } from '../types'
 import type { WorkspaceUndo } from '../hooks/useWorkspaceState'
 import { accountStatusLabel, toNumber } from '../utils/dashboardHelpers'
@@ -17,6 +17,7 @@ interface AccountsViewProps {
   onRestoreLastWorkspaceUndo: () => void
   hideSensitiveInReport: boolean
   setHideSensitiveInReport: (val: boolean | ((curr: boolean) => boolean)) => void
+  onResetWorkspace: () => void
 }
 
 function HealthRow({ ok, label }: { ok: boolean; label: string }) {
@@ -41,6 +42,7 @@ export function AccountsView({
   onRestoreLastWorkspaceUndo,
   hideSensitiveInReport,
   setHideSensitiveInReport,
+  onResetWorkspace,
 }: AccountsViewProps) {
   return (
     <div className="view-stack view-stack--accounts">
@@ -108,7 +110,7 @@ export function AccountsView({
         </article>
 
         <article className="panel">
-          <SectionTitle icon={<FileText size={18} />} title="数据安全" action="v3" />
+          <SectionTitle icon={<FileText size={18} />} title="数据安全" action="v4 · 单文档" />
           <div className="backup-actions">
             <button className="action-button" onClick={onExportWorkspace}>
               <Download size={16} />
@@ -117,6 +119,10 @@ export function AccountsView({
             <button className="action-button action-button--ghost" onClick={onRestoreWorkspaceClick}>
               <Database size={16} />
               恢复工作区
+            </button>
+            <button className="action-button action-button--danger" onClick={onResetWorkspace}>
+              <RefreshCw size={16} />
+              恢复示例
             </button>
           </div>
           {lastWorkspaceUndo && (
@@ -137,9 +143,9 @@ export function AccountsView({
           </label>
           <div className="health-list">
             <HealthRow ok label="完整工作区备份" />
-            <HealthRow ok label="恢复前结构校验" />
+            <HealthRow ok label="逐字段恢复校验" />
             {lastWorkspaceUndo && <HealthRow ok label="最近一次大改可撤销" />}
-            <HealthRow ok label="本地优先存储" />
+            <HealthRow ok label="原子化本地工作区" />
           </div>
         </article>
       </section>

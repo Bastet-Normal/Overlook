@@ -188,8 +188,8 @@ export function BenchmarksView({
               <tr>
                 <th>账号</th>
                 <th>平台</th>
-                <th>均播差</th>
-                <th>互动率差</th>
+                <th>均播差（我方−竞品）</th>
+                <th>互动率差（我方−竞品）</th>
                 <th>内容角度</th>
                 <th aria-label="操作" />
               </tr>
@@ -211,7 +211,10 @@ export function BenchmarksView({
                       </small>
                     </td>
                     <td>{row.platform}</td>
-                    <td className={row.avgViewGap >= 0 ? 'positive' : 'negative'}>{formatNumber(Math.abs(row.avgViewGap))}</td>
+                    <td className={row.avgViewGap >= 0 ? 'positive' : 'negative'}>
+                      {row.avgViewGap >= 0 ? '+' : '-'}
+                      {formatNumber(Math.abs(row.avgViewGap))}
+                    </td>
                     <td className={row.engagementGap >= 0 ? 'positive' : 'negative'}>
                       {row.engagementGap >= 0 ? '+' : '-'}
                       {formatPercent(Math.abs(row.engagementGap))}

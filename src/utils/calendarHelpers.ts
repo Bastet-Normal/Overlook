@@ -7,6 +7,7 @@ export type BestSlot = {
   hour: number
   label: string
   score: number
+  source: 'historical' | 'recommended'
 }
 
 export type ActionExperiment = {
@@ -69,6 +70,7 @@ export function getBestSlots(content: ContentItem[], platform: Platform): BestSl
     hour,
     label: `${String(hour).padStart(2, '0')}:00`,
     score: 72 - index * 5,
+    source: 'recommended' as const,
   }))
 
   const dataCandidates = [...scoredHours.entries()].map(([hour, value]) => ({
@@ -76,6 +78,7 @@ export function getBestSlots(content: ContentItem[], platform: Platform): BestSl
     hour,
     label: `${String(hour).padStart(2, '0')}:00`,
     score: Math.round(value.score / Math.max(1, value.count)),
+    source: 'historical' as const,
   }))
 
   return [...dataCandidates, ...defaultCandidates]
@@ -121,7 +124,7 @@ export function buildInsightList(
   slots: BestSlot[],
 ) {
   const insights: string[] = []
-  const topPlatform = [...summaries].sort((a, b) => b.engagementRate - a.engagementRate)[0]
+  const topPlatform = [...summaries].filter((summary) => summary.posts > 0).sort((a, b) => b.engagementRate - a.engagementRate)[0]
   const topContent = [...content].sort((a, b) => b.views - a.views)[0]
   const totalViews = sumBy(content, (item) => item.views)
   const totalFollowers = sumBy(content, (item) => item.followersGained)
@@ -136,7 +139,11 @@ export function buildInsightList(
   }
 
   if (bestSlot) {
-    insights.push(`${bestSlot.platform} 的优先发布窗口是 ${bestSlot.label}，可放入本周排期。`)
+    insights.push(
+      bestSlot.source === 'historical'
+        ? `${bestSlot.platform} 的历史优先发布窗口是 ${bestSlot.label}，可放入本周排期。`
+        : `${bestSlot.platform} 暂无足够历史样本，先试用建议窗口 ${bestSlot.label}。`,
+    )
   }
 
   const saveRate = totalViews > 0 ? (sumBy(content, (item) => item.saves) / totalViews) * 100 : 0

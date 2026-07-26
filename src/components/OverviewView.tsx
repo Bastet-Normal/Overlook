@@ -1,4 +1,4 @@
-import { Eye, Heart, Users, Trophy, TrendingUp, Database, Lightbulb, Flame, CalendarDays } from 'lucide-react'
+import { ArrowRight, Eye, Heart, Users, Trophy, TrendingUp, Database, Lightbulb, Flame, CalendarDays } from 'lucide-react'
 import {
   Area,
   AreaChart,
@@ -95,6 +95,21 @@ export function OverviewView({
 }: OverviewViewProps) {
   return (
     <div className="view-stack view-stack--overview">
+      {experiments[0] && (
+        <section className="decision-brief">
+          <div className="decision-brief__signal">
+            <span>本周优先判断</span>
+            <strong>{experiments[0].title}</strong>
+            <p>{experiments[0].evidence}</p>
+          </div>
+          <div className="decision-brief__action">
+            <span>建议下一步</span>
+            <strong>{experiments[0].action.replace(/ and /g, ' 和 ')}</strong>
+            <small>{experiments[0].platform} · 观察指标：{experiments[0].metric}</small>
+          </div>
+          <ArrowRight className="decision-brief__arrow" size={20} aria-hidden="true" />
+        </section>
+      )}
       <section className="kpi-grid">
         <KPICard icon={<Eye size={18} />} label="总播放" value={formatNumber(totals.views)} helper={`${contentLength} 条内容`} tone="blue" />
         <KPICard icon={<Heart size={18} />} label="互动率" value={formatPercent(totals.engagementRate)} helper={`${formatNumber(totals.interactions)} 次互动`} tone="rose" />
@@ -105,6 +120,10 @@ export function OverviewView({
       <section className="dashboard-grid">
         <article className="panel panel--wide">
           <SectionTitle icon={<TrendingUp size={18} />} title="内容表现趋势" action={`${trendData.length} 个时间点`} />
+          <div className="chart-key" aria-label="图表图例">
+            <span><i className="chart-key__views" />播放</span>
+            <span><i className="chart-key__interactions" />互动</span>
+          </div>
           <div className="chart-box">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={trendData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
@@ -117,33 +136,6 @@ export function OverviewView({
                     <stop offset="5%" stopColor="var(--rose)" stopOpacity={0.18}/>
                     <stop offset="95%" stopColor="var(--rose)" stopOpacity={0.0}/>
                   </linearGradient>
-                  <filter id="viewsGlow" x="-20%" y="-20%" width="140%" height="140%">
-                    <feGaussianBlur stdDeviation="3.5" result="blur" />
-                    <feMerge>
-                      <feMergeNode in="blur" />
-                      <feMergeNode in="SourceGraphic" />
-                    </feMerge>
-                  </filter>
-                  <filter id="interactionsGlow" x="-20%" y="-20%" width="140%" height="140%">
-                    <feGaussianBlur stdDeviation="3" result="blur" />
-                    <feMerge>
-                      <feMergeNode in="blur" />
-                      <feMergeNode in="SourceGraphic" />
-                    </feMerge>
-                  </filter>
-                  <filter id="activeDotGlow" x="-40%" y="-40%" width="180%" height="180%">
-                    <feGaussianBlur stdDeviation="3" result="blur" />
-                    <feColorMatrix type="matrix" values="
-                      1 0 0 0 0
-                      0 1 0 0 0
-                      0 0 1 0 0
-                      0 0 0 2 0
-                    " />
-                    <feMerge>
-                      <feMergeNode in="blur" />
-                      <feMergeNode in="SourceGraphic" />
-                    </feMerge>
-                  </filter>
                 </defs>
                 <CartesianGrid strokeDasharray="4 4" stroke="var(--border-soft)" vertical={false} />
                 <XAxis 
@@ -186,57 +178,26 @@ export function OverviewView({
                   isAnimationActive={false} 
                 />
 
-                {/* Glowing Stroke Lines */}
                 <Area 
                   type="monotone" 
                   dataKey="views" 
                   stroke="var(--blue)" 
-                  strokeWidth={6} 
-                  fill="none" 
-                  opacity={0.35}
-                  filter="url(#viewsGlow)"
-                  legendType="none"
-                  name="播放-glow" 
-                  dot={false} 
-                  activeDot={false}
-                  isAnimationActive={false} 
-                />
-                <Area 
-                  type="monotone" 
-                  dataKey="interactions" 
-                  stroke="var(--rose)" 
-                  strokeWidth={5} 
-                  fill="none" 
-                  opacity={0.3}
-                  filter="url(#interactionsGlow)"
-                  legendType="none"
-                  name="互动-glow" 
-                  dot={false} 
-                  activeDot={false}
-                  isAnimationActive={false} 
-                />
-
-                {/* Sharp Core Stroke Lines */}
-                <Area 
-                  type="monotone" 
-                  dataKey="views" 
-                  stroke="var(--blue)" 
-                  strokeWidth={2.5} 
+                  strokeWidth={2.25}
                   fill="none" 
                   name="播放" 
                   dot={false} 
-                  activeDot={{ r: 5.5, stroke: '#fff', strokeWidth: 2, fill: 'var(--blue)', filter: 'url(#activeDotGlow)' } as unknown as Record<string, unknown>}
+                  activeDot={{ r: 4.5, stroke: 'var(--surface)', strokeWidth: 2, fill: 'var(--blue)' }}
                   isAnimationActive={false} 
                 />
                 <Area 
                   type="monotone" 
                   dataKey="interactions" 
                   stroke="var(--rose)" 
-                  strokeWidth={2} 
+                  strokeWidth={1.75}
                   fill="none" 
                   name="互动" 
                   dot={false} 
-                  activeDot={{ r: 5, stroke: '#fff', strokeWidth: 2, fill: 'var(--rose)', filter: 'url(#activeDotGlow)' } as unknown as Record<string, unknown>}
+                  activeDot={{ r: 4, stroke: 'var(--surface)', strokeWidth: 2, fill: 'var(--rose)' }}
                   isAnimationActive={false} 
                 />
               </AreaChart>
@@ -268,7 +229,7 @@ export function OverviewView({
                   ))}
                 </Pie>
                 <Tooltip 
-                  formatter={(value: number) => formatNumber(value)} 
+                  formatter={(value) => formatNumber(typeof value === 'number' ? value : Number(value ?? 0))}
                   contentStyle={{
                     background: 'var(--tooltip-bg)',
                     border: '1px solid var(--tooltip-border)',
@@ -303,7 +264,7 @@ export function OverviewView({
                 <Lightbulb size={16} />
                 <div>
                   <strong>{experiment.title}</strong>
-                  <span>{experiment.action}</span>
+                  <span>{experiment.action.replace(/ and /g, ' 和 ')}</span>
                   <small>
                     {experiment.platform} · 指标：{experiment.metric} · {experiment.evidence}
                   </small>

@@ -1,15 +1,10 @@
-import { BarChart3, CalendarDays, Database, Download, FileJson, FileText, Gauge, Radar, RefreshCw, Upload, UserRound, Sun, Moon } from 'lucide-react'
+import { BarChart3, CalendarDays, Database, Gauge, Radar, UserRound, Sun, Moon } from 'lucide-react'
 import type { Dispatch, SetStateAction } from 'react'
 import type { ViewKey } from '../types'
 
 interface NavbarProps {
   activeView: ViewKey
   setActiveView: Dispatch<SetStateAction<ViewKey>>
-  onImportClick: () => void
-  onExportCsv: () => void
-  onExportJson: () => void
-  onExportReport: () => void
-  onResetWorkspace: () => void
   onInstall?: () => void
   showInstall: boolean
   theme: 'dark' | 'light'
@@ -27,11 +22,6 @@ const tabs: Array<{ key: ViewKey; label: string; icon: typeof Gauge }> = [
 export function Navbar({
   activeView,
   setActiveView,
-  onImportClick,
-  onExportCsv,
-  onExportJson,
-  onExportReport,
-  onResetWorkspace,
   onInstall,
   showInstall,
   theme,
@@ -69,39 +59,18 @@ export function Navbar({
           })}
         </nav>
 
-        <div className="nav-actions" aria-label="工作区命令">
-          <div className="command-group">
-            <span>数据</span>
-            <button className="action-button" onClick={onImportClick} title="导入 CSV" aria-label="导入 CSV">
-              <Upload size={16} />
-              <span>导入 CSV</span>
-            </button>
-            <button className="action-button action-button--ghost" onClick={onExportCsv}>
-              <Download size={16} />
-              <span>导出 CSV</span>
-            </button>
+        <div className="nav-actions nav-actions--quiet" aria-label="外观与工作区">
+          <div className="sidebar-state">
+            <span className="sidebar-state__dot" />
+            <span>
+              <strong>本地工作区</strong>
+              <small>数据仅保存在此设备</small>
+            </span>
           </div>
-
-          <div className="command-group">
-            <span>输出</span>
-            <button className="action-button action-button--ghost" onClick={onExportJson}>
-              <FileJson size={16} />
-              <span>JSON</span>
-            </button>
-            <button className="action-button action-button--ghost" onClick={onExportReport}>
-              <FileText size={16} />
-              <span>PDF 报告</span>
-            </button>
-          </div>
-
           <div className="command-group command-group--quiet">
             <button className="action-button action-button--ghost" onClick={onToggleTheme} title={theme === 'dark' ? '切换至亮色模式' : '切换至暗色模式'}>
               {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
               <span>{theme === 'dark' ? '亮色' : '暗色'}</span>
-            </button>
-            <button className="action-button action-button--danger" onClick={onResetWorkspace}>
-              <RefreshCw size={16} />
-              <span>恢复示例</span>
             </button>
             {showInstall && onInstall && (
               <button className="action-button action-button--install" onClick={onInstall}>
