@@ -4,7 +4,7 @@
 // Works for GitHub Pages static deploy (relative paths + runtime caching for hashed assets)
 
 const CACHE_PREFIX = 'overlook-pwa-';
-const CACHE_NAME = `${CACHE_PREFIX}v4`;
+const CACHE_NAME = `${CACHE_PREFIX}v5`;
 const PRECACHE_ASSETS = [
   './',
   './index.html',
@@ -46,11 +46,36 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(request.url);
   const isSameOrigin = url.origin === self.location.origin;
+  const dest = request.destination;
+
+  // Documents stay network-first so a new deployment is visible on the next load.
+  // Hashed scripts and styles remain cache-first below for fast repeat visits.
+  if (isSameOrigin && dest === 'document') {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response && response.status === 200) {
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, response.clone()));
+          }
+          return response;
+        })
+        .catch(() =>
+          caches.match(request)
+            .then((cached) => cached || caches.match('./index.html'))
+            .then((fallback) =>
+              fallback ||
+              new Response(
+                '<!doctype html><title>Offline</title><h1>Overlook 离线</h1><p>请连接网络后重试或使用已缓存数据。</p>',
+                { headers: { 'Content-Type': 'text/html' } },
+              ),
+            ),
+        ),
+    );
+    return;
+  }
 
   // Determine if this is a key app shell asset (cache-first + runtime populate)
-  const dest = request.destination;
   const isShellAsset =
-    dest === 'document' ||
     dest === 'script' ||
     dest === 'style' ||
     dest === 'image' ||
