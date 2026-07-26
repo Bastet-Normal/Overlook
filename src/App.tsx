@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { flushSync } from 'react-dom'
 import { Toaster, toast } from 'sonner'
 
 import { Navbar } from './components/Navbar'
@@ -28,6 +29,9 @@ type BeforeInstallPromptEvent = Event & {
 }
 
 type Theme = 'dark' | 'light'
+type ViewTransitionDocument = Document & {
+  startViewTransition?: (update: () => void) => { finished: Promise<void> }
+}
 
 const THEME_STORAGE_KEY = 'overlook-theme'
 function readStoredTheme(): Theme {
@@ -99,7 +103,23 @@ function OverlookApp() {
   }, [theme])
 
   const toggleTheme = () => {
-    setTheme((t) => (t === 'dark' ? 'light' : 'dark'))
+    const updateTheme = () => {
+      flushSync(() => {
+        setTheme((current) => (current === 'dark' ? 'light' : 'dark'))
+      })
+    }
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const viewTransition = (document as ViewTransitionDocument).startViewTransition
+
+    if (prefersReducedMotion || !viewTransition) {
+      const root = document.documentElement
+      root.classList.add('theme-switching')
+      updateTheme()
+      window.setTimeout(() => root.classList.remove('theme-switching'), 140)
+      return
+    }
+
+    viewTransition.call(document, updateTheme)
   }
 
   useEffect(() => {

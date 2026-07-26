@@ -137,6 +137,12 @@ async function main() {
       await assertDesktopView(desktop, view)
     }
 
+    const themeButton = desktop.locator('.nav-actions button[title="切换至亮色模式"]')
+    await themeButton.click()
+    await desktop.locator('html[data-theme="light"]').waitFor({ timeout: 500 })
+    await desktop.locator('.nav-actions button[title="切换至暗色模式"]').click()
+    await desktop.locator('html[data-theme="dark"]').waitFor({ timeout: 500 })
+
     await desktop.locator('.tab-button[data-view="benchmarks"]').click()
     await desktop.locator('input[placeholder="@handle 或账号名"]').fill('@auto_scan_demo')
     await desktop.waitForTimeout(800)

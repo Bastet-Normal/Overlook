@@ -1,6 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap');
 
 :root {
+  color-scheme: dark;
   /* Premium Obsidian Palette - calmer contrast for long dashboard sessions */
   --bg: #0f1419;
   --canvas: #131a21;
@@ -83,6 +84,7 @@
 }
 
 :root[data-theme='light'] {
+  color-scheme: light;
   /* Morandi Fresh Light Palette */
   --bg: #f3f1ea;
   --canvas: #fbfaf6;
@@ -205,114 +207,45 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-body,
-.app-nav,
-.brand-button,
-.tab-button,
-.action-button,
-.icon-button,
-.workspace-header,
-.panel,
-.kpi-card,
-.status-strip,
-.section-title > span,
-.section-title__icon,
-.insight-item,
-.experiment-card,
-.platform-row,
-.health-row,
-.campaign-card,
-.calendar-card,
-.repurpose-card,
-.market-card,
-.slot-card,
-.mini-metrics span,
-.time-pill,
-.objective-pill,
-.status-pill,
-.tag-row span,
-input,
-select,
-.search-field,
-.table-wrap,
-.data-table th,
-.modal-panel,
-.preview-metrics div,
-.mapping-summary div,
-.preview-row,
-.restore-card,
-.custom-chart-tooltip,
-.recharts-default-tooltip {
-  transition:
-    background-color 240ms ease,
-    background 240ms ease,
-    border-color 240ms ease,
-    color 200ms ease,
-    box-shadow 240ms ease;
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 140ms;
+  animation-timing-function: cubic-bezier(0.2, 0.7, 0.2, 1);
+  mix-blend-mode: normal;
 }
 
-.recharts-pie-sector path,
-.compact-legend i,
-.tooltip-color-indicator,
-.platform-dot {
+.theme-switching body,
+.theme-switching .app-nav,
+.theme-switching .workspace-header,
+.theme-switching .panel,
+.theme-switching .kpi-card,
+.theme-switching .status-strip,
+.theme-switching input,
+.theme-switching select,
+.theme-switching .search-field,
+.theme-switching .table-wrap {
   transition:
-    fill 240ms ease,
-    stroke 240ms ease,
-    background-color 240ms ease,
-    box-shadow 240ms ease;
+    background-color 120ms ease-out,
+    border-color 120ms ease-out,
+    color 100ms linear;
 }
 
-.donut-center-label,
-.recharts-cartesian-axis-tick text {
-  transition: fill 200ms ease;
+.theme-switching .recharts-pie-sector path,
+.theme-switching .donut-center-label,
+.theme-switching .recharts-cartesian-axis-tick text {
+  transition:
+    fill 120ms ease-out,
+    stroke 120ms ease-out;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  body,
-  .app-nav,
-  .brand-button,
-  .tab-button,
-  .action-button,
-  .icon-button,
-  .workspace-header,
-  .panel,
-  .kpi-card,
-  .status-strip,
-  .section-title > span,
-  .section-title__icon,
-  .insight-item,
-  .experiment-card,
-  .platform-row,
-  .health-row,
-  .campaign-card,
-  .calendar-card,
-  .repurpose-card,
-  .market-card,
-  .slot-card,
-  .mini-metrics span,
-  .time-pill,
-  .objective-pill,
-  .status-pill,
-  .tag-row span,
-  input,
-  select,
-  .search-field,
-  .table-wrap,
-  .data-table th,
-  .modal-panel,
-  .preview-metrics div,
-  .mapping-summary div,
-  .preview-row,
-  .restore-card,
-  .custom-chart-tooltip,
-  .recharts-default-tooltip,
-  .recharts-pie-sector path,
-  .compact-legend i,
-  .tooltip-color-indicator,
-  .platform-dot,
-  .donut-center-label,
-  .recharts-cartesian-axis-tick text {
+  ::view-transition-old(root),
+  ::view-transition-new(root),
+  .theme-switching *,
+  .theme-switching *::before,
+  .theme-switching *::after {
     transition: none;
+    animation-duration: 0.01ms;
   }
 }
 
