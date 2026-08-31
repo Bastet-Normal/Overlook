@@ -1,17 +1,19 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
-import { Download, Pencil, Plus, Search, Trash2, X } from 'lucide-react'
+import { Download, Eye, Pencil, Plus, Search, Trash2, X } from 'lucide-react'
 import type { ContentIntent, ContentItem, Platform } from '../types'
 import { PLATFORMS } from '../types'
 import { formatNumber, intentLabel, intentOptions, toNumber } from '../utils/dashboardHelpers'
 import { splitTags } from '../utils/importHelpers'
 import { platformColors, platformSoftColors } from '../utils/mockData'
 import { SectionTitle } from './SectionTitle'
+import { ContentReviewDrawer } from './ContentReviewDrawer'
 
 type ContentDraft = Omit<ContentItem, 'id'>
 type SortMode = 'newest' | 'views' | 'engagement' | 'saves'
 
 interface ContentViewProps {
+  allContent: ContentItem[]
   filteredContent: ContentItem[]
   query: string
   setQuery: (val: string) => void
@@ -51,6 +53,7 @@ const toDraft = (item: ContentItem): ContentDraft => {
 const engagementOf = (item: ContentItem) => item.likes + item.comments + item.shares + item.saves
 
 export function ContentView({
+  allContent,
   filteredContent,
   query,
   setQuery,
@@ -64,6 +67,7 @@ export function ContentView({
   const [draft, setDraft] = useState<ContentDraft>(emptyDraft)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [isComposerOpen, setIsComposerOpen] = useState(false)
+  const [reviewItem, setReviewItem] = useState<ContentItem | null>(null)
   const [sortMode, setSortMode] = useState<SortMode>('newest')
 
   const sortedContent = useMemo(
@@ -91,6 +95,7 @@ export function ContentView({
   }
 
   const openEdit = (item: ContentItem) => {
+    setReviewItem(null)
     setEditingId(item.id)
     setDraft(toDraft(item))
     setIsComposerOpen(true)
@@ -120,6 +125,14 @@ export function ContentView({
 
   return (
     <div className="view-stack view-stack--content">
+      {reviewItem && (
+        <ContentReviewDrawer
+          item={reviewItem}
+          platformItems={allContent.filter((item) => item.platform === reviewItem.platform)}
+          onClose={() => setReviewItem(null)}
+          onEdit={() => openEdit(reviewItem)}
+        />
+      )}
       {isComposerOpen && (
         <>
           <button className="composer-backdrop" onClick={closeComposer} aria-label="关闭内容编辑面板" />
@@ -265,7 +278,7 @@ export function ContentView({
               ) : sortedContent.map((item) => (
                 <tr key={item.id}>
                   <td data-label="内容">
-                    <strong>{item.title}</strong>
+                    <button className="content-title-button" onClick={() => setReviewItem(item)}>{item.title}</button>
                     <small>{item.type} · {item.pillar} · {item.campaign} · {item.audience} · {intentLabel[item.intent]}</small>
                     <div className="tag-row">{item.tags.slice(0, 4).map((tag) => <span key={`${item.id}-${tag}`}>{tag}</span>)}</div>
                   </td>
@@ -276,6 +289,7 @@ export function ContentView({
                   <td data-label="日期">{item.publishedAt.slice(5)} {String(item.hour).padStart(2, '0')}:00</td>
                   <td data-label="操作">
                     <div className="row-actions">
+                      <button className="icon-button" onClick={() => setReviewItem(item)} aria-label={`复盘 ${item.title}`}><Eye size={15} /></button>
                       <button className="icon-button" onClick={() => openEdit(item)} aria-label={`编辑 ${item.title}`}><Pencil size={15} /></button>
                       <button className="icon-button icon-button--danger" onClick={() => onDeleteContent(item.id)} aria-label={`删除 ${item.title}`}><Trash2 size={15} /></button>
                     </div>

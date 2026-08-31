@@ -1,12 +1,15 @@
-import { ShieldCheck, Smartphone, FileText, Download, Database, Undo2, CheckCircle2, AlertTriangle, RefreshCw } from 'lucide-react'
-import type { Account } from '../types'
+import { ShieldCheck, Smartphone, FileText, Download, Database, Undo2, CheckCircle2, AlertTriangle, RefreshCw, Upload, FileDown, Link2 } from 'lucide-react'
+import type { Account, Platform } from '../types'
 import type { WorkspaceUndo } from '../hooks/useWorkspaceState'
 import { accountStatusLabel, toNumber } from '../utils/dashboardHelpers'
 import { SectionTitle } from './SectionTitle'
 
 interface AccountsViewProps {
   accounts: Account[]
-  setAccounts: (val: Account[] | ((curr: Account[]) => Account[])) => void
+  onUpdateAccount: (platform: Platform, patch: Partial<Account>) => void
+  contentCounts: Record<Platform, number>
+  onImportClick: () => void
+  onDownloadTemplate: () => void
   offlineReady: boolean
   contentLength: number
   sponsorScore: number
@@ -31,7 +34,10 @@ function HealthRow({ ok, label }: { ok: boolean; label: string }) {
 
 export function AccountsView({
   accounts,
-  setAccounts,
+  onUpdateAccount,
+  contentCounts,
+  onImportClick,
+  onDownloadTemplate,
   offlineReady,
   contentLength,
   sponsorScore,
@@ -46,6 +52,26 @@ export function AccountsView({
 }: AccountsViewProps) {
   return (
     <div className="view-stack view-stack--accounts">
+      <section className="panel sync-center">
+        <div className="sync-center__heading">
+          <SectionTitle icon={<Link2 size={18} />} title="数据同步中心" action="本地优先" />
+          <div className="section-actions">
+            <button className="action-button" onClick={onImportClick}><Upload size={16} />导入平台数据</button>
+            <button className="action-button action-button--ghost" onClick={onDownloadTemplate}><FileDown size={16} />下载模板</button>
+          </div>
+        </div>
+        <p className="sync-center__notice">当前版本通过 CSV 或手动维护同步数据；只有配置官方接口后才能标记为“接口连接”。模拟竞品数据会始终单独标识，不计作真实同步。</p>
+        <div className="sync-source-grid">
+          {accounts.map((account) => (
+            <article key={`source-${account.platform}`}>
+              <div><strong>{account.platform}</strong><span className={`source-status source-status--${account.status}`}>{accountStatusLabel[account.status]}</span></div>
+              <p>{contentCounts[account.platform]} 条内容 · {account.followers.toLocaleString('zh-CN')} 粉丝</p>
+              <small>最近维护 {account.lastSync || '未记录'}</small>
+            </article>
+          ))}
+        </div>
+      </section>
+
       <section className="account-grid">
         {accounts.map((account) => (
           <article className="panel account-card" key={account.platform}>
@@ -54,11 +80,7 @@ export function AccountsView({
               账号
               <input
                 value={account.handle}
-                onChange={(event) =>
-                  setAccounts((current) =>
-                    current.map((entry) => (entry.platform === account.platform ? { ...entry, handle: event.target.value } : entry)),
-                  )
-                }
+                onChange={(event) => onUpdateAccount(account.platform, { handle: event.target.value, status: 'manual' })}
               />
             </label>
             <label>
@@ -67,28 +89,16 @@ export function AccountsView({
                 type="number"
                 min="0"
                 value={account.followers}
-                onChange={(event) =>
-                  setAccounts((current) =>
-                    current.map((entry) =>
-                      entry.platform === account.platform ? { ...entry, followers: toNumber(event.target.value), status: 'manual' } : entry,
-                    ),
-                  )
-                }
+                onChange={(event) => onUpdateAccount(account.platform, { followers: toNumber(event.target.value), status: 'manual' })}
               />
             </label>
             <label>
               状态
               <select
                 value={account.status}
-                onChange={(event) =>
-                  setAccounts((current) =>
-                    current.map((entry) =>
-                      entry.platform === account.platform ? { ...entry, status: event.target.value as Account['status'] } : entry,
-                    ),
-                  )
-                }
+                onChange={(event) => onUpdateAccount(account.platform, { status: event.target.value as Account['status'] })}
               >
-                <option value="connected">已连接</option>
+                <option value="connected">接口连接（需配置）</option>
                 <option value="manual">手动维护</option>
                 <option value="missing">待配置</option>
               </select>

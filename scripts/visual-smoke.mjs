@@ -139,7 +139,13 @@ async function main() {
 
     const themeButton = desktop.locator('.nav-actions button[title="切换至亮色模式"]')
     await themeButton.click()
+    const themeSwitchIsImmediate = await desktop.evaluate(() => {
+      const panel = document.querySelector('.panel')
+      return document.documentElement.classList.contains('theme-switching') && (!panel || getComputedStyle(panel).transitionDuration === '0s')
+    })
+    if (!themeSwitchIsImmediate) throw new Error('theme switch transition was not suppressed')
     await desktop.locator('html[data-theme="light"]').waitFor({ timeout: 500 })
+    await desktop.waitForTimeout(100)
     await desktop.locator('.nav-actions button[title="切换至暗色模式"]').click()
     await desktop.locator('html[data-theme="dark"]').waitFor({ timeout: 500 })
 
@@ -185,12 +191,50 @@ async function main() {
     await desktop.getByRole('dialog', { name: '新增内容' }).waitFor()
     await desktop.getByRole('button', { name: '关闭内容编辑', exact: true }).click()
     await desktop.getByRole('dialog', { name: '新增内容' }).waitFor({ state: 'hidden' })
-    const firstContentTitle = await desktop.locator('.data-table tbody tr').first().locator('td').first().locator('strong').textContent()
+    const firstContentRow = desktop.locator('.data-table tbody tr').first()
+    const firstContentTitle = await firstContentRow.locator('.content-title-button').textContent()
+    await firstContentRow.getByRole('button', { name: /^复盘 / }).click()
+    await desktop.getByRole('dialog', { name: '内容表现详情' }).waitFor()
+    const reviewMetrics = await desktop.locator('.review-metric-grid article').count()
+    if (reviewMetrics !== 6 || !(await desktop.getByRole('button', { name: '复制复盘', exact: true }).isVisible())) {
+      throw new Error(`content review incomplete: ${reviewMetrics} metrics`)
+    }
+    await desktop.screenshot({ path: path.join(outDir, 'desktop-review-1280x760.png'), fullPage: false })
+    await desktop.getByRole('dialog', { name: '内容表现详情' }).getByRole('button', { name: '关闭内容复盘', exact: true }).click()
     await desktop.locator('.data-table tbody tr').first().getByRole('button', { name: /^编辑 / }).click()
     await desktop.getByRole('dialog', { name: '编辑内容' }).waitFor()
     await desktop.getByLabel('标题').fill(`${firstContentTitle} · 已编辑`)
     await desktop.getByRole('button', { name: '保存修改', exact: true }).click()
     await desktop.getByText(`${firstContentTitle} · 已编辑`, { exact: true }).waitFor()
+
+    await desktop.locator('.tab-strip--desktop .tab-button[data-view="planner"]').click()
+    if (await desktop.evaluate(() => window.scrollY > 1)) throw new Error('planner navigation did not reset scroll position')
+    await desktop.getByRole('button', { name: '新增', exact: true }).click()
+    await desktop.getByRole('dialog', { name: '新增排期' }).waitFor()
+    await desktop.getByLabel('标题').fill('排期增删改验证')
+    await desktop.getByLabel('实验假设').fill('不同钩子结构')
+    await desktop.getByLabel('核心指标').fill('完播率')
+    await desktop.getByRole('button', { name: '加入排期', exact: true }).click()
+    await desktop.getByText('排期增删改验证', { exact: true }).waitFor()
+    await desktop.getByRole('button', { name: '编辑排期 排期增删改验证', exact: true }).click()
+    await desktop.getByRole('dialog', { name: '编辑排期' }).waitFor()
+    await desktop.getByLabel('标题').fill('排期编辑验证')
+    await desktop.getByRole('button', { name: '保存修改', exact: true }).click()
+    await desktop.getByText('排期编辑验证', { exact: true }).waitFor()
+    await desktop.screenshot({ path: path.join(outDir, 'desktop-planner-1280x760.png'), fullPage: false })
+    await desktop.getByRole('button', { name: '删除排期 排期编辑验证', exact: true }).click()
+    await desktop.getByText('排期编辑验证', { exact: true }).waitFor({ state: 'hidden' })
+
+    await desktop.locator('.tab-strip--desktop .tab-button[data-view="accounts"]').click()
+    if (await desktop.evaluate(() => window.scrollY > 1)) throw new Error('accounts navigation did not reset scroll position')
+    await desktop.getByText('当前版本通过 CSV 或手动维护同步数据', { exact: false }).waitFor()
+    await desktop.screenshot({ path: path.join(outDir, 'desktop-accounts-1280x760.png'), fullPage: false })
+    const templateDownload = desktop.waitForEvent('download')
+    await desktop.getByRole('button', { name: '下载模板', exact: true }).click()
+    const downloadedTemplate = await templateDownload
+    if (downloadedTemplate.suggestedFilename() !== 'overlook-import-template.csv') {
+      throw new Error(`import template download failed: ${downloadedTemplate.suggestedFilename()}`)
+    }
     await desktop.locator('input[accept=".csv,text/csv"]').setInputFiles(importCsvPath)
     await desktop.getByRole('dialog', { name: 'CSV 导入预览' }).waitFor()
     const importMetrics = await desktop.locator('.preview-metrics strong').allTextContents()
@@ -291,7 +335,60 @@ async function main() {
     if (mobileContent.overflowX || mobileContent.rowDisplay !== 'grid' || mobileContent.rowWidth > 370) {
       throw new Error(`mobile content cards failed: ${JSON.stringify(mobileContent)}`)
     }
+    await mobile.locator('.view-stack--content .data-table tbody tr').first().getByRole('button', { name: /^复盘 / }).click()
+    await mobile.getByRole('dialog', { name: '内容表现详情' }).waitFor()
+    const mobileReviewLayout = await mobile.locator('.review-drawer').evaluate((element) => {
+      const close = element.querySelector('button[aria-label="关闭内容复盘"]')
+      const drawerRect = element.getBoundingClientRect()
+      const closeRect = close?.getBoundingClientRect()
+      const hit = closeRect ? document.elementFromPoint(closeRect.left + closeRect.width / 2, closeRect.top + closeRect.height / 2) : null
+      return {
+        viewport: [window.innerWidth, window.innerHeight],
+        drawer: [drawerRect.left, drawerRect.top, drawerRect.right, drawerRect.bottom],
+        scroll: [element.scrollWidth, element.clientWidth],
+        close: closeRect ? [closeRect.left, closeRect.top, closeRect.right, closeRect.bottom] : null,
+        closeHit: Boolean(close && close.contains(hit)),
+      }
+    })
+    await mobile.screenshot({ path: path.join(outDir, 'mobile-review-390.png'), fullPage: false })
+    if (
+      mobileReviewLayout.scroll[0] > mobileReviewLayout.scroll[1] + 2 ||
+      mobileReviewLayout.drawer[0] < -1 ||
+      mobileReviewLayout.drawer[2] > mobileReviewLayout.viewport[0] + 1 ||
+      !mobileReviewLayout.close ||
+      mobileReviewLayout.close[0] < 0 ||
+      mobileReviewLayout.close[2] > mobileReviewLayout.viewport[0] ||
+      !mobileReviewLayout.closeHit
+    ) {
+      throw new Error(`mobile content review layout failed: ${JSON.stringify(mobileReviewLayout)}`)
+    }
+    const mobileReviewClose = mobile.getByRole('dialog', { name: '内容表现详情' }).getByRole('button', { name: '关闭内容复盘', exact: true })
+    const mobileReviewCloseHit = await mobileReviewClose.evaluate((element) => {
+      const rect = element.getBoundingClientRect()
+      const hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2)
+      return { rect: [rect.left, rect.top, rect.right, rect.bottom], center: [rect.left + rect.width / 2, rect.top + rect.height / 2], hit: hit?.className ?? hit?.tagName, inside: element.contains(hit) }
+    })
+    if (!mobileReviewCloseHit.inside) throw new Error(`mobile review close covered: ${JSON.stringify(mobileReviewCloseHit)}`)
+    await mobile.mouse.click(mobileReviewCloseHit.center[0], mobileReviewCloseHit.center[1])
+    await mobile.getByRole('dialog', { name: '内容表现详情' }).waitFor({ state: 'hidden' })
     await mobile.screenshot({ path: path.join(outDir, 'mobile-content-390.png'), fullPage: false })
+
+    await mobile.locator('.tab-strip--mobile .tab-button[data-view="planner"]').click()
+    await mobile.locator('.view-stack--planner').waitFor()
+    const mobilePlannerMetrics = await readMetrics(mobile)
+    const mobilePlannerActive = await mobile.locator('.tab-strip--mobile .tab-button--active').getAttribute('data-view')
+    if (mobilePlannerMetrics.overflowX || mobilePlannerActive !== 'planner') {
+      throw new Error(`mobile planner layout failed: ${JSON.stringify({ mobilePlannerMetrics, mobilePlannerActive })}`)
+    }
+    await mobile.screenshot({ path: path.join(outDir, 'mobile-planner-390.png'), fullPage: false })
+    await mobile.locator('.tab-strip--mobile .tab-button[data-view="accounts"]').click()
+    await mobile.locator('.view-stack--accounts').waitFor()
+    const mobileAccountsMetrics = await readMetrics(mobile)
+    const mobileAccountsActive = await mobile.locator('.tab-strip--mobile .tab-button--active').getAttribute('data-view')
+    if (mobileAccountsMetrics.overflowX || mobileAccountsActive !== 'accounts') {
+      throw new Error(`mobile accounts layout failed: ${JSON.stringify({ mobileAccountsMetrics, mobileAccountsActive })}`)
+    }
+    await mobile.screenshot({ path: path.join(outDir, 'mobile-accounts-390.png'), fullPage: false })
 
     console.log(`visual smoke passed; screenshots: ${outDir}`)
   } finally {

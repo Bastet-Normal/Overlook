@@ -3,6 +3,7 @@ import type { Dispatch, SetStateAction } from 'react'
 import { toast } from 'sonner'
 
 import type {
+  Account,
   CalendarItem,
   Competitor,
   CompetitorSnapshot,
@@ -123,6 +124,16 @@ export function useWorkspaceState() {
     if (applyWorkspaceSnapshot(createSeedWorkspace())) toast.success('示例工作区已恢复，可在“账号”页撤销')
   }
 
+  const updateAccount = (platform: Account['platform'], patch: Partial<Account>) => {
+    setAccounts((current) =>
+      current.map((entry) =>
+        entry.platform === platform
+          ? { ...entry, ...patch, lastSync: new Date().toISOString().slice(0, 10) }
+          : entry,
+      ),
+    )
+  }
+
   const addContent = (item: Omit<ContentItem, 'id'>) => {
     const normalized = normalizeContentItem({
       ...item,
@@ -169,13 +180,34 @@ export function useWorkspaceState() {
   }
 
   const toggleCalendarStatus = (id: string) => {
-    setCalendar((current) =>
+    captureWorkspaceUndo('切换排期状态前状态')
+    if (updateCalendar((current) =>
       current.map((entry) => {
         if (entry.id !== id) return entry
         const order: CalendarItem['status'][] = ['draft', 'scheduled', 'done']
         return { ...entry, status: order[(order.indexOf(entry.status) + 1) % order.length] }
       }),
-    )
+    )) toast.success('排期状态已更新，可在“账号”页撤销')
+  }
+
+  const addCalendarItem = (item: Omit<CalendarItem, 'id'>) => {
+    captureWorkspaceUndo('新增排期前状态')
+    const prepared = { ...item, id: makeId('calendar') }
+    if (updateCalendar((current) => [...current, prepared])) toast.success('排期已加入本周计划，可在“账号”页撤销')
+  }
+
+  const editCalendarItem = (id: string, item: Omit<CalendarItem, 'id'>) => {
+    captureWorkspaceUndo('编辑排期前状态')
+    if (updateCalendar((current) => current.map((entry) => (entry.id === id ? { ...item, id } : entry)))) {
+      toast.success('排期已更新，可在“账号”页撤销')
+    }
+  }
+
+  const removeCalendarItem = (id: string) => {
+    captureWorkspaceUndo('删除排期前状态')
+    if (updateCalendar((current) => current.filter((entry) => entry.id !== id))) {
+      toast.success('排期已删除，可在“账号”页撤销')
+    }
   }
 
   const captureCompetitorSnapshotsAction = () => {
@@ -222,12 +254,16 @@ export function useWorkspaceState() {
     captureWorkspaceUndo,
     restoreLastWorkspaceUndo,
     resetWorkspace,
+    updateAccount,
     addContent,
     editContent,
     removeContent,
     addCompetitor,
     removeCompetitor,
     toggleCalendarStatus,
+    addCalendarItem,
+    editCalendarItem,
+    removeCalendarItem,
     captureCompetitorSnapshotsAction,
   }
 }

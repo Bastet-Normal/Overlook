@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Toaster, toast } from 'sonner'
 
 import { Navbar } from './components/Navbar'
@@ -92,6 +92,7 @@ function OverlookApp() {
   const scanner = useCompetitorScan()
 
   const [theme, setTheme] = useState<Theme>(readStoredTheme)
+  const themeSwitchTimerRef = useRef<number | null>(null)
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
@@ -99,7 +100,24 @@ function OverlookApp() {
   }, [theme])
 
   const toggleTheme = () => {
+    const root = document.documentElement
+    root.classList.add('theme-switching')
+    if (themeSwitchTimerRef.current !== null) window.clearTimeout(themeSwitchTimerRef.current)
     setTheme((current) => (current === 'dark' ? 'light' : 'dark'))
+    themeSwitchTimerRef.current = window.setTimeout(() => {
+      root.classList.remove('theme-switching')
+      themeSwitchTimerRef.current = null
+    }, 80)
+  }
+
+  useEffect(() => () => {
+    if (themeSwitchTimerRef.current !== null) window.clearTimeout(themeSwitchTimerRef.current)
+    document.documentElement.classList.remove('theme-switching')
+  }, [])
+
+  const handleViewChange = (view: ViewKey) => {
+    setActiveView(view)
+    window.scrollTo(0, 0)
   }
 
   useEffect(() => {
@@ -171,6 +189,7 @@ function OverlookApp() {
     handleExportWorkspace,
     handleRestoreWorkspace,
     handleExportCsv,
+    handleDownloadImportTemplate,
     handleExportReport,
   } = useWorkspaceFiles({
     workspace: ws,
@@ -222,7 +241,7 @@ function OverlookApp() {
       <Toaster position="top-right" richColors closeButton />
       <Navbar
         activeView={activeView}
-        setActiveView={setActiveView}
+        onViewChange={handleViewChange}
         onInstall={handleInstall}
         showInstall={Boolean(deferredPrompt)}
         theme={theme}
@@ -283,6 +302,7 @@ function OverlookApp() {
 
           {activeView === 'content' && (
           <ContentView
+            allContent={normalizedContent}
             filteredContent={filteredContent}
             query={query}
             setQuery={setQuery}
@@ -306,6 +326,9 @@ function OverlookApp() {
             onGenerateCalendar={handleGenerateCalendarAction}
             onCopyPlan={copyPlan}
             onToggleCalendarStatus={ws.toggleCalendarStatus}
+            onAddCalendarItem={ws.addCalendarItem}
+            onUpdateCalendarItem={ws.editCalendarItem}
+            onDeleteCalendarItem={ws.removeCalendarItem}
             calendarPlatformFilter={calendarPlatformFilter}
             setCalendarPlatformFilter={setCalendarPlatformFilter}
             visibleCalendar={visibleCalendar}
@@ -335,7 +358,10 @@ function OverlookApp() {
           {activeView === 'accounts' && (
           <AccountsView
             accounts={ws.accounts}
-            setAccounts={ws.setAccounts}
+            onUpdateAccount={ws.updateAccount}
+            contentCounts={Object.fromEntries(PLATFORMS.map((platform) => [platform, normalizedContent.filter((item) => item.platform === platform).length])) as Record<Platform, number>}
+            onImportClick={() => fileInputRef.current?.click()}
+            onDownloadTemplate={handleDownloadImportTemplate}
             offlineReady={offlineReady}
             contentLength={ws.content.length}
             sponsorScore={totals.sponsorScore}

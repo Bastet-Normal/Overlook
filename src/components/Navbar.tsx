@@ -1,10 +1,9 @@
 import { BarChart3, CalendarDays, Database, Gauge, Moon, Radar, Sun, UserRound } from 'lucide-react'
-import type { Dispatch, SetStateAction } from 'react'
 import type { ViewKey } from '../types'
 
 interface NavbarProps {
   activeView: ViewKey
-  setActiveView: Dispatch<SetStateAction<ViewKey>>
+  onViewChange: (view: ViewKey) => void
   onInstall?: () => void
   showInstall: boolean
   theme: 'dark' | 'light'
@@ -21,7 +20,7 @@ const tabs: Array<{ key: ViewKey; label: string; icon: typeof Gauge }> = [
 
 export function Navbar({
   activeView,
-  setActiveView,
+  onViewChange,
   onInstall,
   showInstall,
   theme,
@@ -37,7 +36,7 @@ export function Navbar({
             key={tab.key}
             data-view={tab.key}
             className={active ? 'tab-button tab-button--active' : 'tab-button'}
-            onClick={() => setActiveView(tab.key)}
+            onClick={() => onViewChange(tab.key)}
             aria-current={active ? 'page' : undefined}
           >
             <Icon size={15} />
@@ -52,7 +51,7 @@ export function Navbar({
     <>
       <header className="app-nav">
         <div className="app-nav__inner">
-          <button className="brand-button" onClick={() => setActiveView('overview')} aria-label="回到总览">
+          <button className="brand-button" onClick={() => onViewChange('overview')} aria-label="回到总览">
             <span className="brand-mark">
               <BarChart3 size={18} />
             </span>

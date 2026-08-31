@@ -226,6 +226,32 @@ export function useWorkspaceFiles({
     toast.success('CSV 已导出')
   }
 
+  const handleDownloadImportTemplate = () => {
+    const template = Papa.unparse([
+      {
+        平台: 'Douyin',
+        标题: '示例：把平台导出的数据粘贴到对应列',
+        类型: '短视频',
+        日期: new Date().toISOString().slice(0, 10),
+        小时: 12,
+        播放量: 0,
+        点赞: 0,
+        评论: 0,
+        分享: 0,
+        收藏: 0,
+        涨粉: 0,
+        内容支柱: '内容增长',
+        活动: '默认系列',
+        标签: '示例,待替换',
+        受众: '目标受众',
+        钩子: '开场钩子',
+        意图: '拉新',
+      },
+    ], { escapeFormulae: true })
+    downloadBlob(`\uFEFF${template}`, 'text/csv;charset=utf-8', 'overlook-import-template.csv')
+    toast.success('导入模板已下载')
+  }
+
   const handleExportReport = async () => {
     if (!reportRef.current) return
     const toastId = toast.loading('正在生成报告')
@@ -255,6 +281,7 @@ export function useWorkspaceFiles({
     handleExportWorkspace,
     handleRestoreWorkspace,
     handleExportCsv,
+    handleDownloadImportTemplate,
     handleExportReport,
   }
 }

@@ -1,10 +1,13 @@
-import { Target, Clock, CalendarDays, WandSparkles, Copy } from 'lucide-react'
+import { useState } from 'react'
+import { Target, Clock, CalendarDays, WandSparkles, Copy, Pencil, Plus, Trash2 } from 'lucide-react'
 import type { CalendarItem, Goal, Platform } from '../types'
 import { PLATFORMS } from '../types'
 import type { BestSlot } from '../utils/calendarHelpers'
 import { formatNumber, statusLabel, toNumber } from '../utils/dashboardHelpers'
 import { platformSoftColors, platformColors } from '../utils/mockData'
 import { SectionTitle } from './SectionTitle'
+import { CalendarComposer } from './CalendarComposer'
+import type { CalendarDraft } from './CalendarComposer'
 
 interface PlannerViewProps {
   goal: Goal
@@ -24,6 +27,9 @@ interface PlannerViewProps {
   onGenerateCalendar: () => void
   onCopyPlan: () => void
   onToggleCalendarStatus: (id: string) => void
+  onAddCalendarItem: (draft: CalendarDraft) => void
+  onUpdateCalendarItem: (id: string, draft: CalendarDraft) => void
+  onDeleteCalendarItem: (id: string) => void
   calendarPlatformFilter: 'all' | Platform
   setCalendarPlatformFilter: (val: 'all' | Platform) => void
   visibleCalendar: CalendarItem[]
@@ -55,14 +61,40 @@ export function PlannerView({
   onGenerateCalendar,
   onCopyPlan,
   onToggleCalendarStatus,
+  onAddCalendarItem,
+  onUpdateCalendarItem,
+  onDeleteCalendarItem,
   calendarPlatformFilter,
   setCalendarPlatformFilter,
   visibleCalendar,
   repurposeCards,
   topContentTitle,
 }: PlannerViewProps) {
+  const [composer, setComposer] = useState<{ id: string | null; draft: CalendarDraft } | null>(null)
+  const emptyCalendarDraft = (): CalendarDraft => ({
+    day: '周一',
+    platform: 'Bilibili',
+    title: '',
+    format: '长视频',
+    time: '10:00',
+    objective: '内容增长',
+    status: 'draft',
+    experiment: '',
+    metric: '',
+  })
+  const editCalendar = (item: CalendarItem) => {
+    const { id, ...draft } = item
+    setComposer({ id, draft })
+  }
+  const saveCalendar = (draft: CalendarDraft) => {
+    if (composer?.id) onUpdateCalendarItem(composer.id, draft)
+    else onAddCalendarItem(draft)
+    setComposer(null)
+  }
+
   return (
     <div className="view-stack view-stack--planner">
+      {composer && <CalendarComposer initialDraft={composer.draft} editing={Boolean(composer.id)} onClose={() => setComposer(null)} onSave={saveCalendar} />}
       <section className="dashboard-grid">
         <article className="panel">
           <SectionTitle icon={<Target size={18} />} title="月度目标" action={goal.month} />
@@ -130,6 +162,9 @@ export function PlannerView({
       <section className="panel">
         <SectionTitle icon={<CalendarDays size={18} />} title="本周排期" action={`${calendar.length} 项`} />
         <div className="section-actions">
+          <button className="action-button" onClick={() => setComposer({ id: null, draft: emptyCalendarDraft() })}>
+            <Plus size={16} />新增
+          </button>
           <button className="action-button" onClick={onGenerateCalendar}>
             <WandSparkles size={16} />
             生成
@@ -174,6 +209,10 @@ export function PlannerView({
                 {item.experiment && <small>{item.experiment}</small>}
                 {item.metric && <span className="objective-pill">指标：{item.metric}</span>}
                 <span className="objective-pill">{item.objective}</span>
+                <div className="calendar-card__actions">
+                  <button className="icon-button" onClick={() => editCalendar(item)} aria-label={`编辑排期 ${item.title}`}><Pencil size={14} /></button>
+                  <button className="icon-button icon-button--danger" onClick={() => onDeleteCalendarItem(item.id)} aria-label={`删除排期 ${item.title}`}><Trash2 size={14} /></button>
+                </div>
               </article>
             ))
           )}
