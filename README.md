@@ -53,8 +53,7 @@ Overlook 是一款面向 Bilibili、小红书和抖音创作者的本地优先�
 
 ```bash
 npm ci
-# 本地默认使用 WebKit，CI 同时验证 WebKit 和 Chromium。
-npx playwright install webkit
+# 在 macOS Safari 开发者设置中允许远程自动化后运行
 npm run dev
 ```
 
