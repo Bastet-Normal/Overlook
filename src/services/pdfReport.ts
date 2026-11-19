@@ -1,3 +1,5 @@
+import { downloadBlob } from '../utils/dashboardHelpers'
+
 export async function exportElementToPdf(element: HTMLElement, filename: string) {
   const [{ jsPDF }, html2canvasModule] = await Promise.all([import('jspdf'), import('html2canvas')])
   const canvas = await html2canvasModule.default(element, {
@@ -20,5 +22,5 @@ export async function exportElementToPdf(element: HTMLElement, filename: string)
     pdf.addImage(imageData, 'PNG', margin, margin - pageIndex * printableHeight, imageWidth, imageHeight)
   }
 
-  pdf.save(filename)
+  downloadBlob(pdf.output('blob'), 'application/pdf', filename)
 }

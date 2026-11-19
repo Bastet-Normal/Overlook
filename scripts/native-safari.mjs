@@ -135,11 +135,16 @@ export async function watchDownload(page, extension) {
     while (Date.now() < deadline) {
       const filename = (await readdir(dir)).find(name => name.startsWith(prefix) && name.endsWith(extension))
       if (filename && (await stat(join(dir,filename))).size > 0) {
+        if (extension === '.pdf') {
+          const bytes = await readFile(join(dir,filename))
+          if (bytes.subarray(0,5).toString() !== '%PDF-') throw new Error('Downloaded report is not a PDF')
+        }
         await unlink(join(dir,filename))
         return filename.slice(prefix.length)
       }
       await delay(100)
     }
-    throw new Error('Safari download did not finish: ' + extension)
+    const status = await page.evaluate(() => [...document.querySelectorAll('[role=status], [data-sonner-toast], [role=alert]')].map(el=>el.textContent))
+    throw new Error('Safari download did not finish: ' + extension + ' ' + JSON.stringify(status))
   }
 }
