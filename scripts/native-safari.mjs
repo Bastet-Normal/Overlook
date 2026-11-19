@@ -131,7 +131,8 @@ export async function watchDownload(page, extension) {
   }, prefix)
   const dir = join(homedir(), 'Downloads')
   return async () => {
-    for (let n=0; n<200; n++) {
+    const deadline = Date.now() + 120_000
+    while (Date.now() < deadline) {
       const filename = (await readdir(dir)).find(name => name.startsWith(prefix) && name.endsWith(extension))
       if (filename && (await stat(join(dir,filename))).size > 0) {
         await unlink(join(dir,filename))
