@@ -1,14 +1,16 @@
-import { chromium, webkit } from '@playwright/test'
+import { launchSafari, watchDownload } from './native-safari.mjs'
 import { spawn } from 'node:child_process'
-import { mkdirSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import net from 'node:net'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
 const outDir = path.join(tmpdir(), 'overlook-visual-smoke')
 mkdirSync(outDir, { recursive: true })
-const importCsvPath = path.join(outDir, 'import-smoke.csv')
-const workspaceJsonPath = path.join(outDir, 'workspace-smoke.json')
+const fixtureDir = mkdtempSync(path.join(tmpdir(), 'overlook-import-'))
+process.on('exit', () => rmSync(fixtureDir, {recursive:true,force:true}))
+const importCsvPath = path.join(fixtureDir, 'import-smoke.csv')
+const workspaceJsonPath = path.join(fixtureDir, 'workspace-smoke.json')
 writeFileSync(
   importCsvPath,
   [
@@ -127,10 +129,10 @@ async function assertDesktopView(page, view) {
   }
 }
 
-async function runSmoke(engine) {
-  const screenshots = path.join(outDir, engine.name())
+async function runSmoke() {
+  const screenshots = path.join(outDir, 'Safari')
   mkdirSync(screenshots, { recursive: true })
-  const browser = await engine.launch()
+  const browser = await launchSafari()
   try {
     const desktop = await browser.newPage({ viewport: { width: 1280, height: 760 } })
     await desktop.goto(baseUrl)
@@ -139,11 +141,18 @@ async function runSmoke(engine) {
     }
 
     const themeButton = desktop.locator('.nav-actions button[title="切换至亮色模式"]')
-    await themeButton.click()
-    const themeSwitchIsImmediate = await desktop.evaluate(() => {
-      const panel = document.querySelector('.panel')
-      return document.documentElement.classList.contains('theme-switching') && (!panel || getComputedStyle(panel).transitionDuration === '0s')
+    await desktop.evaluate(() => {
+      const root = document.documentElement
+      const observer = new MutationObserver(() => {
+        if (!root.classList.contains('theme-switching')) return
+        const panel = document.querySelector('.panel')
+        window.themeTransitionSuppressed = !panel || getComputedStyle(panel).transitionDuration === '0s'
+        observer.disconnect()
+      })
+      observer.observe(root, {attributes:true, attributeFilter:['class']})
     })
+    await themeButton.click()
+    const themeSwitchIsImmediate = await desktop.evaluate(() => window.themeTransitionSuppressed)
     if (!themeSwitchIsImmediate) throw new Error('theme switch transition was not suppressed')
     await desktop.locator('html[data-theme="light"]').waitFor({ timeout: 500 })
     await desktop.waitForTimeout(100)
@@ -175,6 +184,7 @@ async function runSmoke(engine) {
       throw new Error(`competitor auto scan failed: ${JSON.stringify(scannedDraft)}`)
     }
     await desktop.locator('.benchmark-form button[type="submit"]').click()
+    await desktop.locator('.data-table tbody tr:first-child').getByText('@auto_scan_demo', {exact:true}).waitFor()
     const addedCompetitorText = await desktop.locator('.data-table tbody tr').first().textContent()
     if (!addedCompetitorText?.includes('模拟参考值')) {
       throw new Error(`competitor scan source missing: ${addedCompetitorText}`)
@@ -230,11 +240,11 @@ async function runSmoke(engine) {
     if (await desktop.evaluate(() => window.scrollY > 1)) throw new Error('accounts navigation did not reset scroll position')
     await desktop.getByText('当前版本通过 CSV 或手动维护同步数据', { exact: false }).waitFor()
     await desktop.screenshot({ path: path.join(screenshots, 'desktop-accounts-1280x760.png'), fullPage: false })
-    const templateDownload = desktop.waitForEvent('download')
+    const templateDownload = await watchDownload(desktop, '.csv')
     await desktop.getByRole('button', { name: '下载模板', exact: true }).click()
-    const downloadedTemplate = await templateDownload
-    if (downloadedTemplate.suggestedFilename() !== 'overlook-import-template.csv') {
-      throw new Error(`import template download failed: ${downloadedTemplate.suggestedFilename()}`)
+    const downloadedTemplate = await templateDownload()
+    if (downloadedTemplate !== 'overlook-import-template.csv') {
+      throw new Error(`import template download failed: ${downloadedTemplate}`)
     }
     await desktop.locator('input[accept=".csv,text/csv"]').setInputFiles(importCsvPath)
     await desktop.getByRole('dialog', { name: 'CSV 导入预览' }).waitFor()
@@ -265,11 +275,11 @@ async function runSmoke(engine) {
     if (!exportMenuVisible) {
       throw new Error('export menu is clipped or covered')
     }
-    const pdfDownload = desktop.waitForEvent('download')
+    const pdfDownload = await watchDownload(desktop, '.pdf')
     await desktop.getByRole('button', { name: '合作报告 PDF', exact: true }).click()
-    const downloadedReport = await pdfDownload
-    if (!downloadedReport.suggestedFilename().endsWith('.pdf')) {
-      throw new Error(`PDF report export failed: ${downloadedReport.suggestedFilename()}`)
+    const downloadedReport = await pdfDownload()
+    if (!downloadedReport.endsWith('.pdf')) {
+      throw new Error(`PDF report export failed: ${downloadedReport}`)
     }
     await desktop.locator('.export-menu:not([open])').waitFor()
     await desktop.screenshot({ path: path.join(screenshots, 'desktop-1280x760.png'), fullPage: false })
@@ -391,7 +401,7 @@ async function runSmoke(engine) {
     }
     await mobile.screenshot({ path: path.join(screenshots, 'mobile-accounts-390.png'), fullPage: false })
 
-    console.log(`${engine.name()} visual smoke passed; screenshots: ${screenshots}`)
+    console.log(`${'Safari'} visual smoke passed; screenshots: ${screenshots}`)
   } finally {
     await browser.close()
   }
@@ -399,8 +409,7 @@ async function runSmoke(engine) {
 
 async function main() {
   await waitForPreview()
-  await runSmoke(webkit)
-  if (process.env.CI) await runSmoke(chromium)
+  await runSmoke()
 }
 
 main()
