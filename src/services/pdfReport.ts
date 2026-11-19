@@ -5,7 +5,16 @@ export async function exportElementToPdf(element: HTMLElement, filename: string)
   const bounds = element.getBoundingClientRect()
   if (!bounds.width || !bounds.height) throw new Error('The report has no printable area')
   const scale = Math.min(2, Math.sqrt(4_000_000 / (bounds.width * bounds.height)))
-  const canvas = await html2canvasModule.default(element, {
+  const canvas = document.createElement('canvas')
+  canvas.width = Math.floor(bounds.width * scale)
+  canvas.height = Math.floor(bounds.height * scale)
+  // PDF export needs a CPU pixel readback from the canvas.
+  const context = canvas.getContext('2d', { willReadFrequently: true })
+  if (!context) throw new Error('Cannot create a report canvas')
+  await html2canvasModule.default(element, {
+    canvas,
+    width: bounds.width,
+    height: bounds.height,
     backgroundColor: '#fbfaf7',
     scale,
     logging: false,
@@ -23,8 +32,6 @@ export async function exportElementToPdf(element: HTMLElement, filename: string)
   const pageHeight = pdf.internal.pageSize.getHeight()
   const margin = 24
   const imageWidth = pageWidth - margin * 2
-  const context = canvas.getContext('2d')
-  if (!context || !canvas.width || !canvas.height) throw new Error('Cannot read rendered report pixels')
   const pixelsPerPoint = canvas.width / imageWidth
   const rowsPerPage = Math.max(1, Math.floor((pageHeight - margin * 2) * pixelsPerPoint))
   try {
