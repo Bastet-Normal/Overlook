@@ -123,6 +123,13 @@ export async function watchDownload(page, extension) {
   const prefix = 'overlook-test-' + randomUUID() + '-'
   await page.evaluate(token => {
     window.exportDiagnostics = []
+    if (!window.originalExportLogger) {
+      window.originalExportLogger = console.error.bind(console)
+      console.error = (...args) => {
+        if (args[0] === 'PDF generation failed') window.exportDiagnostics.push(args.map(String).join(' '))
+        window.originalExportLogger(...args)
+      }
+    }
     const observer = new MutationObserver(() => {
       const messages = [...document.querySelectorAll('[data-sonner-toast]')].map(el=>el.innerText).filter(Boolean).join(' ')
       if (messages && window.exportDiagnostics.at(-1)!==messages) window.exportDiagnostics.push(messages)
