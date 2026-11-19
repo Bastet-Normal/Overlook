@@ -9,6 +9,12 @@ export async function exportElementToPdf(element: HTMLElement, filename: string)
     backgroundColor: '#fbfaf7',
     scale,
     logging: false,
+    ignoreElements: node => !!element.ownerDocument.body.contains(node)
+      && !node.contains(element) && !element.contains(node),
+    onclone: (_doc, report) => {
+      report.style.position = 'static'
+      report.style.margin = '0'
+    },
   })
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' })
   const pageWidth = pdf.internal.pageSize.getWidth()
