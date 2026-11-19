@@ -57,7 +57,23 @@ export async function launchSafari() {
           const el = await first()
           await driver.executeScript("arguments[0].focus(); Object.getOwnPropertyDescriptor(Object.getPrototypeOf(arguments[0]),'value').set.call(arguments[0],arguments[1]); arguments[0].dispatchEvent(new Event('input',{bubbles:true})); arguments[0].dispatchEvent(new Event('change',{bubbles:true}));",el,value)
         },
-        setInputFiles: async file => (await first()).sendKeys(file),
+        async setInputFiles(file) {
+          const input = await first()
+          await driver.executeScript(function(input) {
+            window.importRead = {received:false}
+            input.addEventListener('change', async () => {
+              const f = input.files[0]
+              try { window.importRead = {name:f?.name, size:f?.size, bytes:(await f.arrayBuffer()).byteLength} }
+              catch (error) { window.importRead = {name:f?.name, error:String(error)} }
+            }, {once:true,capture:true})
+          }, input)
+          await input.sendKeys(file)
+          const report = await driver.wait(async () => {
+            const result = await driver.executeScript('return window.importRead')
+            return result.name && result
+          }, 15000, 'Safari did not select the test input')
+          if (report.error || report.bytes !== (await stat(file)).size) throw new Error('Safari could not read test file: '+JSON.stringify(report))
+        },
         count: async () => (await matches()).length,
         textContent: async () => (await first()).getProperty('textContent'),
         allTextContents: async () => Promise.all((await matches()).map(el => el.getProperty('textContent'))),
