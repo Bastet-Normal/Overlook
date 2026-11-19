@@ -15,6 +15,8 @@ export async function exportElementToPdf(element: HTMLElement, filename: string)
       report.style.position = 'static'
       report.style.margin = '0'
     },
+  }).catch((cause: unknown) => {
+    throw new Error(`Cannot render report: ${String(cause)}`, { cause })
   })
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' })
   const pageWidth = pdf.internal.pageSize.getWidth()
@@ -32,6 +34,8 @@ export async function exportElementToPdf(element: HTMLElement, filename: string)
       if (top > 0) pdf.addPage()
       pdf.addImage(pixels, 'RGBA', margin, margin, imageWidth, rows / pixelsPerPoint)
     }
+  } catch (cause) {
+    throw new Error(`Cannot encode report pages (${canvas.width} × ${canvas.height}): ${String(cause)}`, { cause })
   } finally {
     canvas.width = 0
     canvas.height = 0
