@@ -1,4 +1,4 @@
-import { chromium } from '@playwright/test'
+import { chromium, webkit } from '@playwright/test'
 import { spawn } from 'node:child_process'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import net from 'node:net'
@@ -127,9 +127,10 @@ async function assertDesktopView(page, view) {
   }
 }
 
-async function main() {
-  await waitForPreview()
-  const browser = await chromium.launch()
+async function runSmoke(engine) {
+  const screenshots = path.join(outDir, engine.name())
+  mkdirSync(screenshots, { recursive: true })
+  const browser = await engine.launch()
   try {
     const desktop = await browser.newPage({ viewport: { width: 1280, height: 760 } })
     await desktop.goto(baseUrl)
@@ -199,7 +200,7 @@ async function main() {
     if (reviewMetrics !== 6 || !(await desktop.getByRole('button', { name: '复制复盘', exact: true }).isVisible())) {
       throw new Error(`content review incomplete: ${reviewMetrics} metrics`)
     }
-    await desktop.screenshot({ path: path.join(outDir, 'desktop-review-1280x760.png'), fullPage: false })
+    await desktop.screenshot({ path: path.join(screenshots, 'desktop-review-1280x760.png'), fullPage: false })
     await desktop.getByRole('dialog', { name: '内容表现详情' }).getByRole('button', { name: '关闭内容复盘', exact: true }).click()
     await desktop.locator('.data-table tbody tr').first().getByRole('button', { name: /^编辑 / }).click()
     await desktop.getByRole('dialog', { name: '编辑内容' }).waitFor()
@@ -221,14 +222,14 @@ async function main() {
     await desktop.getByLabel('标题').fill('排期编辑验证')
     await desktop.getByRole('button', { name: '保存修改', exact: true }).click()
     await desktop.getByText('排期编辑验证', { exact: true }).waitFor()
-    await desktop.screenshot({ path: path.join(outDir, 'desktop-planner-1280x760.png'), fullPage: false })
+    await desktop.screenshot({ path: path.join(screenshots, 'desktop-planner-1280x760.png'), fullPage: false })
     await desktop.getByRole('button', { name: '删除排期 排期编辑验证', exact: true }).click()
     await desktop.getByText('排期编辑验证', { exact: true }).waitFor({ state: 'hidden' })
 
     await desktop.locator('.tab-strip--desktop .tab-button[data-view="accounts"]').click()
     if (await desktop.evaluate(() => window.scrollY > 1)) throw new Error('accounts navigation did not reset scroll position')
     await desktop.getByText('当前版本通过 CSV 或手动维护同步数据', { exact: false }).waitFor()
-    await desktop.screenshot({ path: path.join(outDir, 'desktop-accounts-1280x760.png'), fullPage: false })
+    await desktop.screenshot({ path: path.join(screenshots, 'desktop-accounts-1280x760.png'), fullPage: false })
     const templateDownload = desktop.waitForEvent('download')
     await desktop.getByRole('button', { name: '下载模板', exact: true }).click()
     const downloadedTemplate = await templateDownload
@@ -271,7 +272,7 @@ async function main() {
       throw new Error(`PDF report export failed: ${downloadedReport.suggestedFilename()}`)
     }
     await desktop.locator('.export-menu:not([open])').waitFor()
-    await desktop.screenshot({ path: path.join(outDir, 'desktop-1280x760.png'), fullPage: false })
+    await desktop.screenshot({ path: path.join(screenshots, 'desktop-1280x760.png'), fullPage: false })
 
     const wide = await browser.newPage({ viewport: { width: 1440, height: 900 } })
     await wide.goto(baseUrl)
@@ -281,7 +282,7 @@ async function main() {
     if (wideMetrics.overflowX) {
       throw new Error(`wide desktop overflow: ${JSON.stringify(wideMetrics)}`)
     }
-    await wide.screenshot({ path: path.join(outDir, 'desktop-1440.png'), fullPage: false })
+    await wide.screenshot({ path: path.join(screenshots, 'desktop-1440.png'), fullPage: false })
 
     const mobile = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true })
     await mobile.goto(baseUrl)
@@ -306,7 +307,7 @@ async function main() {
     if (!mobileNav.visible || mobileNav.position !== 'sticky' || !mobileNav.hitInside) {
       throw new Error(`mobile navigation unavailable: ${JSON.stringify(mobileNav)}`)
     }
-    await mobile.screenshot({ path: path.join(outDir, 'mobile-390.png'), fullPage: false })
+    await mobile.screenshot({ path: path.join(screenshots, 'mobile-390.png'), fullPage: false })
     const mobileContentButton = mobile.locator('.tab-strip--mobile .tab-button[data-view="content"]')
     const mobileContentHit = await mobileContentButton.evaluate((element) => {
       const rect = element.getBoundingClientRect()
@@ -350,7 +351,7 @@ async function main() {
         closeHit: Boolean(close && close.contains(hit)),
       }
     })
-    await mobile.screenshot({ path: path.join(outDir, 'mobile-review-390.png'), fullPage: false })
+    await mobile.screenshot({ path: path.join(screenshots, 'mobile-review-390.png'), fullPage: false })
     if (
       mobileReviewLayout.scroll[0] > mobileReviewLayout.scroll[1] + 2 ||
       mobileReviewLayout.drawer[0] < -1 ||
@@ -371,7 +372,7 @@ async function main() {
     if (!mobileReviewCloseHit.inside) throw new Error(`mobile review close covered: ${JSON.stringify(mobileReviewCloseHit)}`)
     await mobile.mouse.click(mobileReviewCloseHit.center[0], mobileReviewCloseHit.center[1])
     await mobile.getByRole('dialog', { name: '内容表现详情' }).waitFor({ state: 'hidden' })
-    await mobile.screenshot({ path: path.join(outDir, 'mobile-content-390.png'), fullPage: false })
+    await mobile.screenshot({ path: path.join(screenshots, 'mobile-content-390.png'), fullPage: false })
 
     await mobile.locator('.tab-strip--mobile .tab-button[data-view="planner"]').click()
     await mobile.locator('.view-stack--planner').waitFor()
@@ -380,7 +381,7 @@ async function main() {
     if (mobilePlannerMetrics.overflowX || mobilePlannerActive !== 'planner') {
       throw new Error(`mobile planner layout failed: ${JSON.stringify({ mobilePlannerMetrics, mobilePlannerActive })}`)
     }
-    await mobile.screenshot({ path: path.join(outDir, 'mobile-planner-390.png'), fullPage: false })
+    await mobile.screenshot({ path: path.join(screenshots, 'mobile-planner-390.png'), fullPage: false })
     await mobile.locator('.tab-strip--mobile .tab-button[data-view="accounts"]').click()
     await mobile.locator('.view-stack--accounts').waitFor()
     const mobileAccountsMetrics = await readMetrics(mobile)
@@ -388,12 +389,18 @@ async function main() {
     if (mobileAccountsMetrics.overflowX || mobileAccountsActive !== 'accounts') {
       throw new Error(`mobile accounts layout failed: ${JSON.stringify({ mobileAccountsMetrics, mobileAccountsActive })}`)
     }
-    await mobile.screenshot({ path: path.join(outDir, 'mobile-accounts-390.png'), fullPage: false })
+    await mobile.screenshot({ path: path.join(screenshots, 'mobile-accounts-390.png'), fullPage: false })
 
-    console.log(`visual smoke passed; screenshots: ${outDir}`)
+    console.log(`${engine.name()} visual smoke passed; screenshots: ${screenshots}`)
   } finally {
     await browser.close()
   }
+}
+
+async function main() {
+  await waitForPreview()
+  await runSmoke(webkit)
+  if (process.env.CI) await runSmoke(chromium)
 }
 
 main()
