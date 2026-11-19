@@ -122,23 +122,43 @@ export async function launchSafari() {
 export async function watchDownload(page, extension) {
   const prefix = 'overlook-test-' + randomUUID() + '-'
   await page.evaluate(token => {
+    window.exportDiagnostics = []
+    if (!window.originalExportLogger) {
+      window.originalExportLogger = console.error.bind(console)
+      console.error = (...args) => {
+        if (args[0] === 'PDF generation failed') window.exportDiagnostics.push(args.map(String).join(' '))
+        window.originalExportLogger(...args)
+      }
+    }
+    const observer = new MutationObserver(() => {
+      const messages = [...document.querySelectorAll('[data-sonner-toast]')].map(el=>el.innerText).filter(Boolean).join(' ')
+      if (messages && window.exportDiagnostics.at(-1)!==messages) window.exportDiagnostics.push(messages)
+    })
+    observer.observe(document.body,{childList:true,subtree:true})
     const proto = HTMLAnchorElement.prototype
     const descriptor = window.originalDownloadDescriptor ??= Object.getOwnPropertyDescriptor(proto,'download')
     Object.defineProperty(proto, 'download', {
       ...descriptor,
-      set(filename) { descriptor.set.call(this, token + filename) }
+      set(filename) { window.exportDiagnostics.push('Prepared '+filename); descriptor.set.call(this, token + filename) }
     })
   }, prefix)
   const dir = join(homedir(), 'Downloads')
   return async () => {
-    for (let n=0; n<200; n++) {
+    const deadline = Date.now() + 120_000
+    while (Date.now() < deadline) {
       const filename = (await readdir(dir)).find(name => name.startsWith(prefix) && name.endsWith(extension))
       if (filename && (await stat(join(dir,filename))).size > 0) {
+        if (extension === '.pdf') {
+          const bytes = await readFile(join(dir,filename))
+          if (bytes.subarray(0,5).toString() !== '%PDF-') throw new Error('Downloaded report is not a PDF')
+        }
         await unlink(join(dir,filename))
         return filename.slice(prefix.length)
       }
       await delay(100)
     }
-    throw new Error('Safari download did not finish: ' + extension)
+    const status = await page.evaluate(() => window.exportDiagnostics)
+    status.push(...(await readdir(dir)).filter(name=>name.startsWith(prefix)))
+    throw new Error('Safari download did not finish: ' + extension + ' ' + JSON.stringify(status))
   }
 }

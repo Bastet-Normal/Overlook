@@ -261,7 +261,8 @@ export function useWorkspaceFiles({
         `overlook-brand-report-${new Date().toISOString().slice(0, 10)}.pdf`,
       )
       toast.success('品牌报告 PDF 已生成', { id: toastId })
-    } catch {
+    } catch (error) {
+      console.error('PDF generation failed', error)
       toast.error('PDF 生成失败', { id: toastId })
     }
   }
