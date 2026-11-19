@@ -122,11 +122,17 @@ export async function launchSafari() {
 export async function watchDownload(page, extension) {
   const prefix = 'overlook-test-' + randomUUID() + '-'
   await page.evaluate(token => {
+    window.exportDiagnostics = []
+    const observer = new MutationObserver(() => {
+      const messages = [...document.querySelectorAll('[data-sonner-toast]')].map(el=>el.innerText).filter(Boolean).join(' ')
+      if (messages && window.exportDiagnostics.at(-1)!==messages) window.exportDiagnostics.push(messages)
+    })
+    observer.observe(document.body,{childList:true,subtree:true})
     const proto = HTMLAnchorElement.prototype
     const descriptor = window.originalDownloadDescriptor ??= Object.getOwnPropertyDescriptor(proto,'download')
     Object.defineProperty(proto, 'download', {
       ...descriptor,
-      set(filename) { descriptor.set.call(this, token + filename) }
+      set(filename) { window.exportDiagnostics.push('Prepared '+filename); descriptor.set.call(this, token + filename) }
     })
   }, prefix)
   const dir = join(homedir(), 'Downloads')
@@ -144,7 +150,8 @@ export async function watchDownload(page, extension) {
       }
       await delay(100)
     }
-    const status = await page.evaluate(() => [...document.querySelectorAll('[role=status], [data-sonner-toast], [role=alert]')].map(el=>el.textContent))
+    const status = await page.evaluate(() => window.exportDiagnostics)
+    status.push(...(await readdir(dir)).filter(name=>name.startsWith(prefix)))
     throw new Error('Safari download did not finish: ' + extension + ' ' + JSON.stringify(status))
   }
 }
