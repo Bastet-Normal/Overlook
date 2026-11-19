@@ -3,7 +3,7 @@ import safari from 'selenium-webdriver/safari.js'
 import { readFile, writeFile, readdir, stat, unlink } from 'node:fs/promises'
 import { randomUUID } from 'node:crypto'
 import { homedir } from 'node:os'
-import { join } from 'node:path'
+import { basename, join } from 'node:path'
 import { createRequire } from 'node:module'
 import { setTimeout as delay } from 'node:timers/promises'
 
@@ -41,38 +41,40 @@ export async function launchSafari() {
       return {
         ...queries(steps), first: () => selector([...steps,{type:'first'}]),
         async click() {
-          const el = await first()
-          await driver.wait(() => driver.executeScript(function(el) {
-            el.scrollIntoView({block:'center',behavior:'instant'})
-            const r=el.getBoundingClientRect()
-            return el.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2))
-          },el),5000)
-          const rect = await driver.executeScript(function(el) {
-            const r=el.getBoundingClientRect()
-            return [Math.round(r.x+r.width/2),Math.round(r.y+r.height/2)]
-          },el)
-          await driver.actions().move({origin:'viewport',x:rect[0],y:rect[1]}).click().perform()
+          await driver.wait(async () => {
+            const el = await first()
+            const point = await driver.executeScript(function(el) {
+              el.scrollIntoView({block:'center',behavior:'instant'})
+              const r=el.getBoundingClientRect()
+              const x=Math.round(r.x+r.width/2), y=Math.round(r.y+r.height/2)
+              if (!el.contains(document.elementFromPoint(x,y))) return null
+              window.safariClickSeen = false
+              el.addEventListener('click',()=>{window.safariClickSeen=true},{once:true,capture:true})
+              return [x,y]
+            },el)
+            if (!point) return false
+            await driver.actions().move({origin:'viewport',x:point[0],y:point[1]}).pause(80).click().perform()
+            return driver.executeScript('return window.safariClickSeen')
+          }, 5000, 'Safari click: ' + JSON.stringify(steps))
         },
         async fill(value) {
           const el = await first()
           await driver.executeScript("arguments[0].focus(); Object.getOwnPropertyDescriptor(Object.getPrototypeOf(arguments[0]),'value').set.call(arguments[0],arguments[1]); arguments[0].dispatchEvent(new Event('input',{bubbles:true})); arguments[0].dispatchEvent(new Event('change',{bubbles:true}));",el,value)
         },
         async setInputFiles(file) {
-          const input = await first()
-          await driver.executeScript(function(input) {
-            window.importRead = {received:false}
-            input.addEventListener('change', async () => {
-              const f = input.files[0]
-              try { window.importRead = {name:f?.name, size:f?.size, bytes:(await f.arrayBuffer()).byteLength} }
-              catch (error) { window.importRead = {name:f?.name, error:String(error)} }
-            }, {once:true,capture:true})
-          }, input)
-          await input.sendKeys(file)
-          const report = await driver.wait(async () => {
-            const result = await driver.executeScript('return window.importRead')
-            return result.name && result
-          }, 15000, 'Safari did not select the test input')
-          if (report.error || report.bytes !== (await stat(file)).size) throw new Error('Safari could not read test file: '+JSON.stringify(report))
+          const bytes = await readFile(file)
+          const name = basename(file)
+          const type = name.endsWith('.csv') ? 'text/csv' : 'application/json'
+          // Transfer the same fixture bytes into the real file input on the browser host.
+          // Hosted Safari cannot read files from the runner process's temporary directory.
+          await driver.executeScript(function(input, encoded, name, type) {
+            const transfer = new DataTransfer()
+            const bytes = Uint8Array.from(atob(encoded), ch => ch.charCodeAt(0))
+            transfer.items.add(new File([bytes], name, {type}))
+            input.files = transfer.files
+            input.dispatchEvent(new Event('input', {bubbles:true}))
+            input.dispatchEvent(new Event('change', {bubbles:true}))
+          }, await first(), bytes.toString('base64'), name, type)
         },
         count: async () => (await matches()).length,
         textContent: async () => (await first()).getProperty('textContent'),

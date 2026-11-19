@@ -1,15 +1,13 @@
 import { launchSafari, watchDownload } from './native-safari.mjs'
 import { spawn } from 'node:child_process'
-import { mkdirSync, mkdtempSync, chmodSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import net from 'node:net'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
 const outDir = path.join(tmpdir(), 'overlook-visual-smoke')
 mkdirSync(outDir, { recursive: true })
-// The Safari content process needs read access to the files chosen via WebDriver.
-const fixtureDir = mkdtempSync('/private/tmp/overlook-import-')
-chmodSync(fixtureDir, 0o755)
+const fixtureDir = mkdtempSync(path.join(tmpdir(), 'overlook-import-'))
 process.on('exit', () => rmSync(fixtureDir, {recursive:true,force:true}))
 const importCsvPath = path.join(fixtureDir, 'import-smoke.csv')
 const workspaceJsonPath = path.join(fixtureDir, 'workspace-smoke.json')
